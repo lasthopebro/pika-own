@@ -1,0 +1,13 @@
+{
+  "name": "pika-own",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "seed": "python -I tools/build_seed.py",
+    "lint": "npx --yes web-ext lint --source-dir . --ignore-files \"work/**\" \"tools/**\" \"test/**\" \"*.md\" \"package*.json\"",
+    "ff": "npx --yes web-ext run --source-dir . --firefox-profile <PROFILPFAD> --keep-profile-changes",
+    "brave": "echo brave.exe --load-extension=<PFAD-ZU-DIESEM-ORDNER>"
+  }
+}

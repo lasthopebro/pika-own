@@ -1,0 +1,213 @@
+{
+  "node": "N3",
+  "date": "2026-11-11",
+  "rules": "R1-R5 eingehalten: nur oeffentliche Webseiten gelesen, keine Pikamark-Pakete, keine Nutzerdaten, keine Schluessel.",
+  "a_reference_projects": [
+    {
+      "name": "dovetab",
+      "repo": "https://github.com/k2so-dev/dovetab",
+      "license": "MIT",
+      "category": "Lesezeichen-Board / Schnellwahl (Newtab, Chrome+Firefox, WXT, Vue)",
+      "usable": "Newtab-Kachelansicht, Listen/Spalten, Empfehlungen, Aufraeumen; WXT-Setup fuer gemeinsame Chrome/Firefox-Codebasis. Sehr jung (1 Stern) -> Qualitaet pruefen.",
+      "sources": ["https://github.com/k2so-dev/dovetab"]
+    },
+    {
+      "name": "chrome-new-tab-page-bookmarks",
+      "repo": "https://github.com/mathio/chrome-new-tab-page-bookmarks",
+      "license": "MIT",
+      "category": "Lesezeichen-Board (Spalten)",
+      "usable": "Einfache Mehrspalten-Darstellung der Lesezeichen im Newtab, Chrome+Firefox, Dark/Light. Klein, gut als Minimalreferenz.",
+      "sources": ["https://github.com/mathio/chrome-new-tab-page-bookmarks"]
+    },
+    {
+      "name": "Search Bookmarks, History and Tabs",
+      "repo": "https://github.com/Fannon/search-bookmarks-history-and-tabs",
+      "license": "MIT",
+      "category": "Suche / Palette ueber Lesezeichen, Verlauf, Tabs; Tags; Tab-Gruppen",
+      "usable": "Kommandopalette-aehnliche Suche, Tagging, Fuzzy-Suche, MV3, Chrome+Firefox (Tab-Gruppen in Firefox mit Fallback, Favicons nur Chrome mit favicon-Permission).",
+      "sources": ["https://github.com/Fannon/search-bookmarks-history-and-tabs"]
+    },
+    {
+      "name": "Tab Session Manager",
+      "repo": "https://github.com/sienori/Tab-Session-Manager",
+      "license": "MPL-2.0",
+      "category": "Tab-Sessions (Speichern/Wiederherstellen Fenster/Tabs)",
+      "usable": "Referenz fuer Session-Datenmodell, Auto-Save, Wiederherstellung; ~2.5k Sterne, Chrome+Firefox. MPL: Dateiebene-Copyleft, bei Uebernahme Quelle in NOTICE.",
+      "sources": ["https://github.com/sienori/Tab-Session-Manager"]
+    },
+    {
+      "name": "Tabee (chrome-tab-modifier)",
+      "repo": "https://github.com/furybee/chrome-tab-modifier",
+      "license": "MIT",
+      "category": "Tab-Regeln (URL-Regeln: umbenennen, gruppieren, pinnen)",
+      "usable": "Regelmodell fuer Tab-Sortierung/Gruppierung nach URL-Mustern (TypeScript). Nur Chrome. Hinweis: urspruengliche URL sylouuu/chrome-tab-modifier, Repo ist jetzt unter furybee gefuehrt.",
+      "sources": ["https://github.com/furybee/chrome-tab-modifier", "https://github.com/sylouuu/chrome-tab-modifier/blob/master/README.md"]
+    },
+    {
+      "name": "chrome-tab-decider",
+      "repo": "https://github.com/jsamuel1/chrome-tab-decider",
+      "license": "Apache-2.0",
+      "category": "Tab-Sortierung per KI (on-device) in native Tab-Gruppen",
+      "usable": "Muster: Tabs klassifizieren und in Chrome-Tab-Gruppen einsortieren, 'nichts bewegt sich bis Klassifikator bereit'. Chrome-spezifisch (WebGPU/Chrome built-in AI). Sehr jung.",
+      "sources": ["https://github.com/jsamuel1/chrome-tab-decider"]
+    },
+    {
+      "name": "auto-tab-groups",
+      "repo": "https://github.com/nitzanpap/auto-tab-groups",
+      "license": "GPL-3.0",
+      "category": "Tab-Sortierung (Gruppierung nach Domain/Regeln), Firefox+Chrome",
+      "usable": "Ideenquelle/Referenz fuer Gruppieren nach (Sub)Domain und Regeln. GPL-3.0 ist nach R2 erlaubt, aber copyleft: Code-Uebernahme wuerde das eigene Repo auf GPL ziehen -> besser nur als Ideenquelle.",
+      "sources": ["https://github.com/nitzanpap/auto-tab-groups"]
+    }
+  ],
+  "a_notes": [
+    "Lizenzen per GitHub-API (Alexandria github-com repositories/repo) am 2026-11-11 gelesen; vor Code-Uebernahme LICENSE-Datei im Repo selbst gegenpruefen.",
+    "Seitenleisten-Referenz (offen) nicht gezielt gefunden: Suche lieferte keinen belastbaren Treffer. Offene Frage fuer N4: Seitenleiste selbst bauen (sidebar_action/sidePanel siehe b)."
+  ],
+  "b_firefox_vs_chromium": {
+    "sidebar": {
+      "firefox": "Manifest-Key sidebar_action; einzige Pflicht: default_panel (HTML). Optional default_icon, default_title, open_at_install (Default true). browser_style in MV3 nicht mehr nutzen.",
+      "chromium": "API chrome.sidePanel, Permission 'sidePanel', ab Chrome 114; sidePanel.open() ab Chrome 116, nur als Reaktion auf Nutzeraktion (Klick auf Action-Icon, Tastenkuerzel, Kontextmenue, Geste auf Erweiterungsseite). setPanelBehavior fuer Klick auf Action-Icon.",
+      "chromium_note": "sidebar_action wird von Chrome/Edge nicht unterstuetzt (MDN-Kompatibilitaetstabelle: No support).",
+      "common_codebase": "Zwei Manifest-Varianten: Firefox mit sidebar_action, Chromium mit side_panel + sidePanel-Permission; gleiche HTML/JS-Seite als Panel. Brave/Vivaldi/Opera: Pikamark-Doku sagt, Vivaldi/Opera oeffnen per Toolbar statt Newtab (Hinweis zu Newtab-Override-Grenzen).",
+      "sources": [
+        "https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/sidebar_action",
+        "https://developer.chrome.com/docs/extensions/reference/api/sidePanel"
+      ]
+    },
+    "newtab_override": {
+      "summary": "chrome_url_overrides.newtab in beiden: HTML-Datei im Paket, keine Remote-URL. MDN: Chrome 59 / Edge 79 / Firefox 54 / Safari 14.1; Opera laut MDN kein Support; Firefox for Android kein Support. Bei mehreren Erweiterungen gewinnt in Firefox die zuletzt installierte/aktivierte. Seiten-<title> setzen, sonst erscheint die moz-extension://-URL als Tabtitel.",
+      "note": "Pikamark-Manual: Edge kann Newtab-Erweiterungen nach Installation deaktivieren (Nutzer muss einschalten).",
+      "sources": [
+        "https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/chrome_url_overrides",
+        "https://pikamark.app/"
+      ]
+    },
+    "background_mv3": {
+      "chrome": "Nur background.service_worker in MV3. scripts/page werden vor Chrome 121 abgelehnt, ab Chrome 121 in MV3 ignoriert.",
+      "firefox": "background.service_worker nicht unterstuetzt (Bug 1573659); MV3 nutzt nicht-persistente Event Pages (background.scripts). Ab Firefox 121 startet die Background-Page auch, wenn service_worker im Manifest steht (vorher nicht, ab 120 nicht).",
+      "cross_browser": "Im Manifest beide Keys angeben: \"background\": {\"scripts\":[\"background.js\"],\"service_worker\":\"background.js\"}. Chrome nimmt service_worker, Firefox scripts. Kein persistenter Zustand im Hintergrund annehmen (State in storage), getBackgroundPage() nicht nutzen.",
+      "sources": [
+        "https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background",
+        "https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Background_scripts"
+      ]
+    },
+    "history": {
+      "summary": "chrome.history/browser.history: search, getVisits, deleteUrl usw.; MDN-Tabelle: Chrome 5 / Edge 79 Vollsupport. Firefox-Spalte im abgerufenen Ausschnitt nicht enthalten -> aus MDN-Seite history nachpruefen (nicht verifiziert).",
+      "sources": ["https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Browser_support_for_JavaScript_APIs"]
+    },
+    "topSites": {
+      "summary": "Permission 'topSites' noetig. get() liefert MostVisitedURL-Objekte, eines je Eintrag der Browser-Newtab-Seite. Chrome ab 19 / Edge 79; MostVisitedURL.favicon in Chrome nicht unterstuetzt (Favicons separat holen, z.B. Chrome 'favicon'-Permission / Firefox eigene). Optionen wie includeFavicon/newtab/onePerDomain/limit sind laut MDN dokumentiert; Chrome-Unterstuetzung der Zusatzoptionen nicht einzeln verifiziert.",
+      "design_hint": "Schnellwahl nicht nur auf topSites stuetzen (nur ~Top-Seiten, nicht pro Domain Unterseiten): history.search + eigene Aggregation (siehe N5).",
+      "sources": ["https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/topSites/get"]
+    },
+    "bookmarks": {
+      "summary": "Pikamark nutzt in allen Browsern die Permissions bookmarks, storage, search; favicon nur Chromium; optional tabs und tabGroups (Chromium und Firefox 139+). Zeigt, dass bookmarks-API Firefox+Chromium abdeckt. Eigene MDN-Pruefung der bookmarks-Tabelle nicht durchgefuehrt (nicht verifiziert).",
+      "sources": ["https://pikamark.app/manual"]
+    },
+    "tabs_groups": {
+      "summary": "tabs.group Chrome 88 / Edge 88, tabGroups-API Chrome 89 / Edge 89 laut MDN. Firefox: tabGroups laut Pikamark-Manual ab Firefox 139 (Open all in one group).",
+      "sources": [
+        "https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Browser_support_for_JavaScript_APIs",
+        "https://pikamark.app/manual"
+      ]
+    },
+    "common_codebase_hints": [
+      "Build-Tool mit zwei Manifest-Targets (z.B. WXT, wie dovetab) oder zwei manifest.json aus einem Template.",
+      "Promise-API browser.* verwenden; Chrome unterstuetzt browser.* teils neu (sidePanel: 'browser.* since Chrome 148'); sonst webextension-polyfill.",
+      "Hintergrund: beide Keys scripts+service_worker, keine globalen Variablen als Zustand.",
+      "Seitenleiste: Feature-Detect (browser.sidebarAction vs chrome.sidePanel).",
+      "Optionale Permissions (tabs, tabGroups, notifications) erst bei Nutzung anfragen wie Pikamark."
+    ]
+  },
+  "c_ai": {
+    "ollama": {
+      "base_url": "http://localhost:11434",
+      "list_models": {
+        "request": "GET /api/tags",
+        "curl": "curl http://localhost:11434/api/tags",
+        "response_shape": "{\"models\":[{\"name\":\"gemma4\",\"model\":\"gemma4\",\"modified_at\":\"...\",\"size\":9608350245,\"digest\":\"...\",\"details\":{\"format\":\"gguf\",\"family\":\"...\",\"parameter_size\":\"8.0B\",\"quantization_level\":\"Q4_K_M\"}}]}",
+        "source": "https://docs.ollama.com/api/tags"
+      },
+      "chat": {
+        "request": "POST /api/chat",
+        "curl": "curl http://localhost:11434/api/chat -d '{\"model\":\"gemma4\",\"messages\":[{\"role\":\"user\",\"content\":\"why is the sky blue?\"}]}'",
+        "fetch_example_nonstream": "fetch('http://localhost:11434/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],stream:false,format:'json'})}).then(r=>r.json()).then(j=>j.message.content)",
+        "notes": "Body: model (Pflicht), messages (Pflicht), optional tools, format ('json' oder JSON-Schema), options, stream (Default true -> Zeilen-JSON-Stream; fuer einfache Aufrufe stream:false), think, keep_alive. Antwort: message.role/content, done, done_reason, Dauer-/Token-Zaehler. Kontextfenster Default 4096 Tokens, per options.num_ctx anpassbar.",
+        "sources": ["https://docs.ollama.com/api/chat", "https://docs.ollama.com/faq"]
+      },
+      "cors_extensions": {
+        "fact": "Ollama erlaubt Cross-Origin-Anfragen standardmaessig von 127.0.0.1 und 0.0.0.0. Fuer Browser-Erweiterungen muss deren Origin ueber OLLAMA_ORIGINS erlaubt werden.",
+        "example": "OLLAMA_ORIGINS=chrome-extension://*,moz-extension://*,safari-web-extension://* ollama serve",
+        "windows_hint": "Als Umgebungsvariable setzen und Ollama neu starten (laufende App liest sie beim Start; FAQ-Abschnitt 'Setting environment variables on Windows').",
+        "extension_hint": "Host-Permission fuer http://localhost:11434/* im Manifest eintragen. Spezifische Erweiterungs-Origin statt Wildcard bevorzugen (moz-extension://<uuid> ist pro Profil zufaellig).",
+        "source": "https://docs.ollama.com/faq"
+      }
+    },
+    "openrouter": {
+      "base_url": "https://openrouter.ai/api/v1",
+      "headers": {
+        "Authorization": "Bearer <OPENROUTER_API_KEY>  (Key nur in lokalen Erweiterungs-Einstellungen, R4)",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "optional, Seiten-URL fuer Rankings",
+        "X-OpenRouter-Title": "optional, Seitenname fuer Rankings"
+      },
+      "chat_completions": {
+        "request": "POST /api/v1/chat/completions",
+        "fetch_example": "fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{Authorization:'Bearer <OPENROUTER_API_KEY>','Content-Type':'application/json','HTTP-Referer':'<YOUR_SITE_URL>','X-OpenRouter-Title':'<YOUR_SITE_NAME>'},body:JSON.stringify({model:'openai/gpt-5.2',messages:[{role:'user',content:'What is the meaning of life?'}]})})",
+        "streaming": "stream:true im Body -> Server-Sent Events; der Stream enthaelt gelegentlich Kommentar-Payloads, die ignoriert werden muessen.",
+        "response": "OpenAI-kompatibel; Antworttext ueblicherweise choices[0].message.content (Feldname im abgerufenen Ausschnitt nicht woertlich zitiert -> nicht verifiziert).",
+        "source": "https://openrouter.ai/docs/api-reference/overview"
+      },
+      "list_models": {
+        "request": "GET /api/v1/models (Query u.a. limit, offset, category)",
+        "fetch_example": "fetch('https://openrouter.ai/api/v1/models?limit=500',{method:'GET',headers:{Authorization:'Bearer <token>'}}).then(r=>r.json())",
+        "fields": "Pricing-Objekt (Strings, USD je Token/Anfrage): prompt, completion, request, image, web_search, internal_reasoning, input_cache_read/write; Wert \"0\" = kostenlos (Filter fuer 'gratis' Modelle).",
+        "unverified": "Ob /models ohne Key funktioniert, wurde nicht belegt; Doku-Beispiele senden Bearer-Header -> Header immer mitsenden.",
+        "sources": ["https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties", "https://openrouter.ai/docs/guides/overview/models"]
+      }
+    },
+    "interface_hint": "Gemeinsames Interface listModels() / chat(messages, {model, stream}); Ollama zuerst (kein Key, localhost), OpenRouter als zweiter Provider (N4-Vorgabe). Fuer Tab-Sortierung Ausgabe per format:'json' (Ollama) bzw. response_format/JSON-Schema (OpenRouter, nicht verifiziert) erzwingen."
+  },
+  "d_pikamark_public_pages": {
+    "scope": "Nur oeffentliche Seiten gelesen: pikamark.app, /manual, /pricing. Keine Erweiterung heruntergeladen/geoeffnet (R1).",
+    "sources": ["https://pikamark.app/", "https://pikamark.app/manual", "https://pikamark.app/pricing"],
+    "concept": "Newtab-Board aus den ECHTEN Browser-Lesezeichen (keine Kopie); eigene Extras (Notizen, Tags, Layout) lokal gespeichert; kein Konto.",
+    "free": [
+      "Spalten-Board und Galerie (Grid/Liste, kompakt/erweitert)",
+      "Drag and drop, Kommandopalette (F, Praefixe > # @ /), Suche, Toolbar-Popup (Suche, Save this tab)",
+      "Notizen und Checklisten",
+      "Favoriten, 9 Farblabels",
+      "Themes hell/dunkel/System, 5 Akzente, Schrift Sans/Mono/Serif",
+      "Date&Time-Widget",
+      "Papierkorb (bis 7 Tage, ~20 Eintraege), Undo, Export/Import (JSON)",
+      "Auswahlmodus (Mehrfachaktionen, Links kopieren), Open all, Move to folder",
+      "Ordner 'Recently added' und 'Most visited' (zaehlt nur Klicks in Pikamark, nicht Verlauf)",
+      "Save open tabs as folder, Einfuegen von Links per Ctrl+V",
+      "5 Sprachen, Tastaturkuerzel"
+    ],
+    "pro": [
+      "Tags (14 Farben, Filter)",
+      "Kommentare und Erinnerungen (pro Element), System-Benachrichtigungen (nur Chromium)",
+      "Workspaces (getrennte Ansichten ueber dieselben Lesezeichen)",
+      "Pinned Links (bis 16)",
+      "Tab-Sessions (bis 100 Tabs/Session, 30 Sessions je Workspace)",
+      "Automatische Snapshots (taeglich) und Backup-Ordner (Chrome/Edge)",
+      "Hintergruende, Pitch-Black, eigene Akzentfarbe, Look je Workspace",
+      "Eigene Icons (Emoji), Spaltennamen und -farben",
+      "Widgets: Countdown, Timer/Pomodoro, Zaehler, Snippets, Foto, Zeitzonen",
+      "Massen-Umbenennen mit Suchen/Ersetzen/Regex (Vorschau, Undo)",
+      "Duplikate finden und entfernen",
+      "Kopierformate Markdown/HTML/CSV/Baum"
+    ],
+    "pricing": "Free $0; Pro $2.99/Monat, $19.99/Jahr oder $49.99 einmalig; 14 Tage Trial ohne Karte; Lizenz auf bis zu 3 Geraeten.",
+    "permissions": "Pflicht: bookmarks, storage, search (+ favicon auf Chromium). Optional: tabs, tabGroups, freemius.com-Host, notifications+alarms.",
+    "implication_for_N4": "Alle Pro-Features (Tags, Kommentare, Erinnerungen, Workspaces, Sessions, Backups, Look, Widgets, Massen-Umbenennen) sind in PLAN N6 vorgesehen und werden clean-room aus dieser oeffentlichen Beschreibung selbst gebaut (R1)."
+  },
+  "unverified_or_open": [
+    "Firefox-Spalten der MDN-Kompatibilitaet fuer history/topSites/bookmarks nicht im Abruf enthalten.",
+    "OpenRouter: Auth-Pflicht von GET /models, Antwortfeldnamen von chat/completions, response_format nicht woertlich belegt.",
+    "Kein belastbares offenes Seitenleisten-Referenzprojekt gefunden.",
+    "Lizenz-Dateien der Repos nicht einzeln gelesen, nur GitHub-API-Metadaten."
+  ]
+}
