@@ -1,5 +1,6 @@
 import { B } from './lib/api.js'
-import { load, save } from './lib/store.js'
+import { load, save, update } from './lib/store.js'
+import { applyTopics, undo as undoLf } from './lib/folders.js'
 import { h, toast, menu, dialog, ask, tile } from './lib/ui.js'
 import { domainOf, groupHistory, renameName, parseAiTopics, score, parseBars, barsToText } from './lib/logic.js'
 import { loadItems } from './lib/dials.js'
@@ -14,7 +15,8 @@ let S, T, histItems = [], filterTag = '', selMode = false, focus = null, drag = 
 const byId = new Map()
 const sel = new Set()
 const $ = (id) => document.getElementById(id)
-const persist = () => save(S)
+// lf/snapshots schreiben auch Hintergrund und Leiste: nie mit altem Stand überschreiben
+const persist = () => update((cur) => { Object.assign(cur, S, { lf: cur.lf, snapshots: cur.snapshots }); S.lf = cur.lf; S.snapshots = cur.snapshots })
 const ws = () => S.workspaces.find((w) => w.id === S.currentWs) || S.workspaces[0]
 const mk = (n) => n.url || 'f:' + n.id
 const mt = (k) => (S.meta[k] ||= {})
@@ -548,6 +550,8 @@ function showTopics(out, tabs, topics) {
         const r = await importFolders(Object.entries(topics).map(([name, idx]) => ({ path: ['KI-Themen', name], items: idx.map((i) => ({ t: tabs[i].title, u: tabs[i].url })) })))
         toast(`${r.added} Lesezeichen in „KI-Themen“ gespeichert`)
       } }, 'Als Lesezeichen-Ordner speichern'),
+      h('button', { onclick: async () => { await update((s) => applyTopics(s, topics, tabs)); toast('In Live-Ordner übernommen') } }, 'In Live-Ordner übernehmen'),
+      h('button', { onclick: async () => { toast((await update((s) => undoLf(s))) ? 'Zurückgesetzt' : 'Nichts zurückzusetzen') } }, 'Rückgängig'),
       h('button', { onclick: async () => {
         for (const [name, idx] of Object.entries(topics)) await saveSession(S, 'KI: ' + name, idx.map((i) => tabs[i]))
         await persist(); toast('Sitzungen gespeichert')
@@ -638,5 +642,7 @@ function render() { renderHead(); renderPinned(); renderTags(); renderWidgets();
   render()
   histItems = await loadItems()
   renderBars(); renderResume()
+  PikaBar.mount(pikabar)
+  if (location.hash === '#ai') aiDlg()
   for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved']) B.bookmarks[ev].addListener(reloadSoon)
 })()
