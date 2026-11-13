@@ -8,7 +8,7 @@ const srv = http.createServer((req, res) => {
     if (req.url === '/api/tags') return res.end(JSON.stringify({ models: [{ name: 'llama3:test', size: 2e9 }] }))
     if (req.url === '/api/pull') { pullBody = b; return res.end('{"status":"pulling abc","total":200,"completed":100}\n{"status":"success"}\n') }
     if (req.url === '/api/chat') { chatBody = b; return res.end(JSON.stringify({ message: { content: '{"topics":{"Erste":[0],"Zweite":[1]}}' } })) }
-    res.setHeader('content-type', 'text/html'); res.end(`<title>Seite ${req.url}</title>x`)
+    res.setHeader('content-type', 'text/html'); if (req.url === '/csp') res.setHeader('content-security-policy', "default-src 'none'"); res.end(`<title>Seite ${req.url}</title>x`)
   })
 }).listen(11434)
 const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m)
@@ -88,6 +88,16 @@ const tabsBefore = ctx.pages().length
 await msg(page, { type: 'focusOrOpen', url: 'http://localhost:11434/a' }); await page.waitForTimeout(500)
 ok(ctx.pages().length === tabsBefore, 'Öffnen ohne Duplikat (vorhandener Tab wird fokussiert)')
 const tq = Date.now(); await msg(page, { type: 'getBar', host: '' }); ok(Date.now() - tq < 200, `getBar unter 200 ms (${Date.now() - tq} ms)`)
+// Leiste auf Webseiten (v0.5): einschalten, strenge CSP, Ausschlussliste, Zustand klein
+await page.evaluate(async () => { const { update } = await import('./lib/store.js'); await update((S) => { S.settings.pagebar.on = true }) })
+await msg(page, { type: 'pagebar' }); await page.waitForTimeout(500)
+const cp = await ctx.newPage(); await cp.goto('http://localhost:11434/csp'); await cp.waitForTimeout(1500)
+ok((await cp.evaluate(() => getComputedStyle(document.documentElement).marginTop)) === '30px', 'Leiste auf Seite mit strenger CSP sichtbar (Seite 30 px nach unten)')
+await page.evaluate(async () => { const { update } = await import('./lib/store.js'); await update((S) => { S.settings.pagebar.exclude = 'localhost' }) })
+await cp.reload(); await cp.waitForTimeout(1500)
+ok((await cp.evaluate(() => getComputedStyle(document.documentElement).marginTop)) === '0px', 'Ausschlussliste: Leiste fehlt auf localhost')
+const slim = await msg(page, { type: 'getBar', host: '' })
+ok(!('settings' in slim) && !('meta' in slim) && JSON.stringify(slim).length < 20000, 'getBar liefert nur den schlanken Ausschnitt (' + JSON.stringify(slim).length + ' Zeichen)')
 await ctx.close()
 const ctx2 = await chromium.launchPersistentContext(ud, { channel: 'chromium', headless: true, ignoreDefaultArgs: ['--disable-extensions'], args: ['--disable-features=DisableLoadExtensionCommandLineSwitch', `--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`] })
 let [sw2] = ctx2.serviceWorkers(); if (!sw2) sw2 = await ctx2.waitForEvent('serviceworker')
