@@ -10,6 +10,7 @@ import { openTabs, saveSession, openSession } from './lib/sessions.js'
 import * as ai from './lib/ai.js'
 import * as ollama from './lib/ollama.js'
 import { resumeCards } from './lib/resume.js'
+import { trashAdd, restoreParent, findDupes, discovery } from './lib/board.js'
 
 let S, T, histItems = [], filterTag = '', selMode = false, focus = null, drag = null, importing = false
 const byId = new Map()
@@ -23,6 +24,7 @@ const mt = (k) => (S.meta[k] ||= {})
 const go = (url) => { location.href = url }
 const btn = (t, title, fn) => h('button', { class: 'ico', title, onclick: fn }, t)
 const COLORS = [['', 'Keine'], ['#ef4444', 'Rot'], ['#f97316', 'Orange'], ['#eab308', 'Gelb'], ['#22c55e', 'Grün'], ['#3b82f6', 'Blau'], ['#a855f7', 'Violett']]
+const FONTS = { sans: '', mono: 'ui-monospace,Consolas,monospace', serif: 'Georgia,serif' }
 const PRESETS = {
   aurora: 'radial-gradient(60% 50% at 20% 20%,#7c3aed,transparent),radial-gradient(50% 50% at 80% 30%,#06b6d4,transparent),radial-gradient(60% 60% at 50% 90%,#10b981,transparent)',
   sunset: 'linear-gradient(160deg,#f97316,#db2777 55%,#4c1d95)',
@@ -56,6 +58,11 @@ function columnsFor(w) {
   if (loose.length) cols.push({ id: 'virtual', title: 'Leiste', children: loose, virtual: true })
   cols.push(...(bar.children || []).filter((c) => !c.url))
   for (const r of T[0].children) if (r !== bar && r.children?.length) cols.push(r)
+  if (S.settings.discover) {
+    const u = urlsOf(T[0])
+    cols.push({ id: 'virtual-recent', title: 'Zuletzt hinzugefügt', children: discovery('recent', u), virtual: true },
+      { id: 'virtual-top', title: 'Meistbesucht', children: discovery('top', u, histItems), virtual: true })
+  }
   return cols
 }
 function passes(n) {
@@ -71,6 +78,7 @@ async function applyLook() {
   r.dataset.theme = dark ? 'dark' : 'light'
   r.toggleAttribute('data-pitch', !!(dark && s.pitch))
   r.style.setProperty('--accent', s.accent)
+  r.style.fontFamily = FONTS[s.font] || ''
   el.style.opacity = bg.type === 'none' ? 0 : bg.intensity / 100
   if (bg.type === 'preset') el.style.background = PRESETS[bg.preset]
   else if (bg.type === 'color') el.style.background = bg.c1
@@ -267,6 +275,7 @@ function colEl(f) {
 function renderBoard() {
   const b = $('board')
   b.classList.toggle('gallery', S.settings.view === 'gallery')
+  b.classList.toggle('compact', S.settings.view === 'compact')
   const cols = focus ? [byId.get(focus)].filter(Boolean) : columnsFor(ws())
   b.replaceChildren(...[focus ? h('button', { onclick: () => { focus = null; renderBoard() } }, '← Alle Spalten') : null, ...cols.map(colEl),
     cols.length ? null : h('p', { class: 'muted' }, 'Keine Lesezeichen. Einstellungen → „Seed importieren“ oder Lesezeichen anlegen.')].filter(Boolean))
@@ -365,8 +374,39 @@ async function renameOne(n) {
 }
 async function del(nodes) {
   if (!confirm(`${nodes.length} Eintrag/Einträge löschen? (Ordner mit Inhalt)`)) return
-  for (const n of nodes) { try { n.url ? await B.bookmarks.remove(n.id) : await B.bookmarks.removeTree(n.id) } catch (e) { toast(e.message) } }
+  await trashNodes(nodes)
   sel.clear()
+  toast('In den Papierkorb verschoben (7 Tage)')
+}
+// Erst in den Papierkorb, dann löschen: ein Fehler beim Löschen verliert nichts.
+async function trashNodes(nodes) {
+  for (const n of nodes) S.trash = trashAdd(S.trash, n, Date.now())
+  await persist()
+  for (const n of nodes) { try { n.url ? await B.bookmarks.remove(n.id) : await B.bookmarks.removeTree(n.id) } catch (e) { toast(e.message) } }
+}
+async function restoreTree(t, parentId, index) {
+  const n = await B.bookmarks.create(t.url ? { parentId, index, title: t.title, url: t.url } : { parentId, index, title: t.title })
+  for (const c of t.children || []) await restoreTree(c, n.id)
+}
+function trashDlg() {
+  const body = h('div', { class: 'list' })
+  const draw = () => body.replaceChildren(...(S.trash.length ? S.trash.map((e) => h('div', { class: 'lrow' },
+    h('span', {}, `${e.tree.title || e.tree.url} · ${new Date(e.at).toLocaleDateString('de-DE')}${e.tree.children ? ` · ${e.tree.children.length} Einträge` : ''}`),
+    h('button', { onclick: async () => {
+      const p = restoreParent(e, (id) => byId.has(id), barOf(T).id)
+      await restoreTree(e.tree, p, p === e.parentId ? e.index : undefined)
+      S.trash = S.trash.filter((x) => x !== e); await persist(); draw(); toast('Wiederhergestellt')
+    } }, 'Wiederherstellen'))) : [h('p', { class: 'muted' }, 'Papierkorb ist leer (7 Tage, höchstens 20 Einträge).')]))
+  draw()
+  dialog('Papierkorb', body)
+}
+function dupesDlg() {
+  const groups = findDupes(urlsOf(T[0]))
+  if (!groups.length) return toast('Keine Dubletten gefunden')
+  // Tags und Favorit der gelöschten Kopien wandern auf das behaltene (gleiche URL = gleicher meta-Schlüssel).
+  dialog(`Dubletten (${groups.length} URLs)`, h('div', { class: 'list' }, groups.map((g) => h('div', { class: 'lrow' }, h('span', {}, `${g.length}× ${g[0].title || g[0].url}`)))), [
+    { label: 'Abbrechen' },
+    { label: 'Je eines behalten', primary: true, fn: async () => { await trashNodes(groups.flatMap((g) => g.slice(1))); toast('Dubletten im Papierkorb') } }])
 }
 function bulkRename(nodes) {
   if (!nodes.length) return toast('Nichts ausgewählt')
@@ -414,6 +454,7 @@ function renderSelBar() {
 function palette() {
   const ACTIONS = [
     ['Auswahlmodus', toggleSel], ['Board / Galerie wechseln', toggleView], ['KI: Tabs nach Themen', aiDlg], ['Tab-Sitzungen', sessionsDlg],
+    ['Papierkorb', trashDlg], ['Dubletten finden', dupesDlg],
     ['Einstellungen', settingsDlg], ['Neuer Workspace', newWs], ['Widget hinzufügen', addWidget],
     ['Sicherung jetzt erstellen', async () => { await saveBackup(); toast('Gesichert') }], ['Tag-Filter aufheben', () => { filterTag = ''; render() }],
   ]
@@ -582,7 +623,9 @@ function settingsDlg() {
     { name: 'theme', label: 'Design', type: 'select', value: s.theme, options: [['system', 'System'], ['light', 'Hell'], ['dark', 'Dunkel']] },
     { name: 'accent', label: 'Akzentfarbe', type: 'color', value: s.accent },
     { name: 'pitch', label: 'Pitch Black (nur dunkel)', type: 'checkbox', value: s.pitch },
-    { name: 'view', label: 'Ansicht', type: 'select', value: s.view, options: [['board', 'Board'], ['gallery', 'Galerie']] },
+    { name: 'view', label: 'Ansicht', type: 'select', value: s.view, options: [['board', 'Board'], ['gallery', 'Galerie'], ['compact', 'Kompakte Zeilen']] },
+    { name: 'font', label: 'Schriftart', type: 'select', value: s.font, options: [['sans', 'Sans'], ['mono', 'Mono'], ['serif', 'Serif']] },
+    { name: 'discover', label: 'Spalten „Zuletzt hinzugefügt“ und „Meistbesucht“', type: 'checkbox', value: s.discover },
     { name: 'favicons', label: 'Seiten-Icons laden (Netzwerk)', type: 'checkbox', value: s.favicons },
     { name: 'bgType', label: 'Hintergrund', type: 'select', value: bg.type, options: [['none', 'Keiner'], ['preset', 'Vorlage'], ['color', 'Farbe'], ['gradient', 'Verlauf'], ['photo', 'Foto']] },
     { name: 'preset', label: 'Vorlage', type: 'select', value: bg.preset, options: Object.keys(PRESETS) },
@@ -594,7 +637,7 @@ function settingsDlg() {
     { name: 'pbExclude', label: 'Leiste auf Webseiten ausblenden bei', value: s.pagebar.exclude, placeholder: 'bank.de, mail.com' },
   ], { ok: 'Speichern', extra }).then(async (v) => {
     if (!v) return
-    Object.assign(s, { theme: v.theme, accent: v.accent, pitch: v.pitch, view: v.view, favicons: v.favicons, hidden: v.hidden.split(',').map((x) => x.trim()).filter(Boolean) })
+    Object.assign(s, { theme: v.theme, accent: v.accent, pitch: v.pitch, view: v.view, font: v.font, discover: v.discover, favicons: v.favicons, hidden: v.hidden.split(',').map((x) => x.trim()).filter(Boolean) })
     s.pagebar.exclude = v.pbExclude.trim()
     Object.assign(bg, { type: v.bgType, preset: v.preset, c1: v.c1, c2: v.c2, intensity: v.intensity, grain: v.grain, parallax: v.parallax })
     await persist(); await applyLook(); render()
@@ -649,7 +692,7 @@ function render() { renderHead(); renderPinned(); renderTags(); renderWidgets();
   await applyLook()
   render()
   histItems = await loadItems()
-  renderBars(); renderResume()
+  renderBars(); renderResume(); if (S.settings.discover) renderBoard()
   PikaBar.mount(pikabar)
   if (location.hash === '#ai') aiDlg()
   for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved']) B.bookmarks[ev].addListener(reloadSoon)

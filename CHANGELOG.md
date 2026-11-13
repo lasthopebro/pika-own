@@ -1,5 +1,10 @@
 # Änderungen
 
+## Unveröffentlicht
+- Papierkorb (7 Tage, höchstens 20 Einträge) mit Wiederherstellen; Löschen geht immer zuerst dorthin.
+- Dubletten-Finder mit „Je eines behalten“ (Tags und Favoriten bleiben, sie hängen an der URL).
+- Optionale Spalten „Zuletzt hinzugefügt“ und „Meistbesucht“, Ansicht „Kompakte Zeilen“, Schriftart Sans/Mono/Serif.
+
 ## 0.5.1 (stabil)
 - Erste veröffentlichte Version: v0.1 bis v0.5 zusammengeführt, ohne Konto, ohne Lizenzschlüssel, alle Funktionen frei.
 - Lokal zuerst: KI nur mit Ollama auf dem eigenen Rechner (OpenRouter optional, nur kostenlose Modelle). Es werden nur Titel und Domains gesendet.
@@ -22,5 +27,5 @@
 ## Bekannte Grenzen
 - Firefox und Brave wurden in dieser Version nicht von Hand geprüft; getestet wurde mit Chromium (Playwright).
 - Firefox lädt unsignierte Erweiterungen nur vorübergehend (about:debugging); dauerhaft braucht eine Signatur.
-- Nicht enthalten: Board-Funktionen aus v0.3 Punkt 4.x, die über das Bestehende hinausgehen, sowie v0.6.
+- Noch offen aus v0.3 Punkt 4.x: Notiz/Foto-Widget, Ansicht „Zentriert“, Toolbar-Popup, Sprachen DE/EN, Modulaufteilung von newtab.js; dazu v0.6.
 - Die Leiste auf Webseiten schiebt die Seite um 30 px nach unten; Seiten mit eigenen fixierten Kopfzeilen können sich überlagern.
