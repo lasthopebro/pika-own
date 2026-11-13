@@ -33,3 +33,12 @@ Kommentare in Issue/PR: `von -> an | TYP | Change | Status | nächste Aktion`. N
 
 ## Definition of Done (pro Change)
 Alle Tasks abgehakt, `npm test` und Lint ohne Fehler, Chromium-E2E grün, Firefox-Checkliste abgehakt, README aktuell, Draft-PR auf „Ready“.
+
+## Varianten (andere Ansätze, ohne Branch-Wildwuchs)
+Eine **Variante** probiert einen anderen Ansatz für dasselbe Projekt aus, ohne die Hauptlinie (v0.3 bis v0.6) zu verändern.
+- **Namen:** Branch `agent/<anbieter>/variante-<name>` oder `agent/<anbieter>/<name>-variante`, Orca-Worktree `<name>-variante`, PR-Titel „Variante: <Name> (nicht Hauptlinie)“, Labels `variante` und `variante:<name>`.
+- **Basis bleibt unverändert:** Varianten starten von einem benannten Stand und ändern keine Dateien der Hauptlinie; neue Dateien liegen in einem eigenen Unterordner.
+- **Immer Draft-PR.** Gemergt wird eine Variante nur, wenn der Auftraggeber es entscheidet; ohne Entscheidung bleibt sie offen oder wird geschlossen, nicht gelöscht, bevor sie dokumentiert ist.
+- **Worktrees:** höchstens einer je Variante und einer je Hauptlinien-Change; Orca verwaltet sie (`orca worktree create --name <name>-variante --branch <branch> --base-branch <basis>`).
+- **Vor dem Anlegen:** `git branch --list` und `git worktree list`. Vorhandenes weiterverwenden.
+- Aktuelle Varianten: `variante:pinokio` (Launcher, PR #15).
