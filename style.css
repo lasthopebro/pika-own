@@ -56,3 +56,4 @@ dialog::backdrop{background:#0007}dialog h3{margin:0 0 10px}
 /* Seitenleiste */
 .side{padding:8px}.side #sidehead{display:flex;gap:6px;margin-bottom:8px}.side #sidehead select{flex:1;min-width:0}
 .side .item{padding:5px 4px}.side details>summary{cursor:pointer;padding:4px 0}
+.cards{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px}.card{background:var(--card,#ffffff14);border:1px solid #8884;border-radius:10px;padding:10px 12px;max-width:260px}.card ul{margin:6px 0;padding-left:16px;font-size:12px}.dot{display:inline-block;width:10px;height:10px;border-radius:50%}.dot.on{background:#22c55e}.dot.off{background:#ef4444}.aimodels progress{width:90px}.aimodels .lrow{flex-wrap:wrap}

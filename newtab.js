@@ -7,6 +7,8 @@ import { treeToFolders, importFolders, barOf } from './lib/seed.js'
 import { saveBackup, listBackups, makeBackup, restore } from './lib/backup.js'
 import { openTabs, saveSession, openSession } from './lib/sessions.js'
 import * as ai from './lib/ai.js'
+import * as ollama from './lib/ollama.js'
+import { resumeCards } from './lib/resume.js'
 
 let S, T, histItems = [], filterTag = '', selMode = false, focus = null, drag = null, importing = false
 const byId = new Map()
@@ -137,6 +139,14 @@ function renderBars() {
     if (!g.length) return null
     return h('div', { class: 'bar' }, h('div', { class: 'barname' }, bar.name), h('div', { class: 'dials' }, g.map(dialEl)))
   }).filter(Boolean))
+}
+/* ---------- Weitermachen: Verlauf -> Sitzungs-Karten ---------- */
+function renderResume() {
+  const cards = resumeCards(histItems)
+  $('resume').replaceChildren(...(cards.length ? [h('div', { class: 'barname' }, 'Weitermachen'), h('div', { class: 'cards' }, cards.map((c) => h('div', { class: 'card' },
+    h('b', {}, c.title), h('span', { class: 'muted' }, ` ${new Date(c.end).toLocaleString('de-DE', { weekday: 'short', hour: '2-digit', minute: '2-digit' })} · ${c.items.length} Seiten`),
+    h('ul', {}, c.items.slice(0, 3).map((i) => h('li', {}, i.title.slice(0, 50)))),
+    h('button', { onclick: () => B.windows.create({ url: c.items.map((i) => i.url) }) }, 'Alle öffnen'))))] : []))
 }
 const dialEl = (g) => h('a', {
   class: 'dial', href: 'https://' + g.domain + '/', title: `${g.domain} · ${g.visits} Besuche`,
@@ -483,28 +493,53 @@ function sessionsDlg() {
 /* ---------- KI ---------- */
 function aiDlg() {
   const a = S.settings.ai
-  const prov = h('select', { onchange: sync }, [['ollama', 'Ollama (lokal)'], ['openrouter', 'OpenRouter']].map(([v, l]) => h('option', { value: v, selected: a.provider === v }, l)))
+  const prov = h('select', { onchange: sync }, [['ollama', 'Ollama (lokal)'], ['openrouter', 'OpenRouter (extern, kostenlose Modelle)']].map(([v, l]) => h('option', { value: v, selected: a.provider === v }, l)))
   const url = h('input', { value: a.ollamaUrl }), key = h('input', { type: 'password', value: a.orKey, placeholder: 'sk-or-…' })
-  const model = h('input', { list: 'ai-models', placeholder: 'Modell' }), dl = h('datalist', { id: 'ai-models' })
-  const rowUrl = h('label', { class: 'row' }, h('span', {}, 'Ollama-URL'), url), rowKey = h('label', { class: 'row' }, h('span', {}, 'OpenRouter-Schlüssel'), key)
+  const status = h('div', { class: 'aistatus' }), models = h('div', { class: 'aimodels' })
+  const orModel = h('select', {}, a.orModel ? [h('option', { value: a.orModel }, a.orModel)] : [])
+  const secOl = h('div', {}, h('label', { class: 'row' }, h('span', {}, 'Ollama-URL'), url, h('button', { onclick: () => drawOllama() }, 'Prüfen')), status, models)
+  const secOr = h('div', {}, h('label', { class: 'row' }, h('span', {}, 'OpenRouter-Schlüssel'), key), h('label', { class: 'row' }, h('span', {}, 'Modell'), orModel, h('button', { onclick: () => loadOr() }, 'Gratis-Modelle laden')),
+    h('p', { class: 'muted' }, 'Datenschutz: Tab-Titel und Domains gehen an OpenRouter und das Modell. Gratis-Modelle haben ein Tageslimit; bei Limit wechselt die Erweiterung auf dein Ollama-Modell, falls eines gewählt ist.'))
   const out = h('div', { class: 'airesult' })
-  const cfg = () => ({ ...a, provider: prov.value, ollamaUrl: url.value.trim() || a.ollamaUrl, orKey: key.value.trim(), ...(prov.value === 'ollama' ? { ollamaModel: model.value.trim() } : { orModel: model.value.trim() }) })
-  function sync() { rowUrl.hidden = prov.value !== 'ollama'; rowKey.hidden = prov.value !== 'openrouter'; model.value = (prov.value === 'ollama' ? a.ollamaModel : a.orModel) || ''; dl.replaceChildren() }
-  sync()
-  const loadBtn = h('button', { onclick: async () => {
-    try { const ms = await ai.listModels(cfg()); dl.replaceChildren(...ms.map((m) => h('option', { value: m }))); if (!model.value && ms[0]) model.value = ms[0]; toast(ms.length + ' Modelle geladen') } catch (e) { toast('Fehler: ' + e.message) }
-  } }, 'Modelle laden')
+  const base = () => url.value.trim() || a.ollamaUrl
+  const cfg = () => ({ ...a, provider: prov.value, ollamaUrl: base(), orKey: key.value.trim(), orModel: orModel.value || a.orModel })
+  function sync() { secOl.hidden = prov.value !== 'ollama'; secOr.hidden = prov.value !== 'openrouter'; if (prov.value === 'ollama') drawOllama() }
+  async function loadOr() { try { const ms = await ai.listModels(cfg()); orModel.replaceChildren(...ms.map((m) => h('option', { value: m, selected: m === a.orModel }, m))); toast(ms.length + ' kostenlose Modelle') } catch (e) { toast('Fehler: ' + e.message) } }
+  async function use(name) { prov.value = 'ollama'; Object.assign(a, { provider: 'ollama', ollamaModel: name, ollamaUrl: base() }); await persist(); drawOllama() }
+  async function drawOllama() {
+    const up = await ollama.ping(base())
+    const cmd = 'OLLAMA_ORIGINS=chrome-extension://*,moz-extension://*'
+    status.replaceChildren(h('span', { class: 'dot ' + (up ? 'on' : 'off') }), up ? ' Ollama läuft' : ' Ollama nicht erreichbar',
+      ...(up ? [] : [h('p', { class: 'muted' }, 'Entweder ist Ollama nicht gestartet (ollama.com/download) oder es blockiert diese Erweiterung. Setze diese Umgebungsvariable und starte Ollama neu:'), h('code', {}, cmd), h('button', { onclick: () => navigator.clipboard.writeText(cmd).then(() => toast('Kopiert')) }, 'Kopieren')]))
+    if (!up) return models.replaceChildren()
+    let have = []
+    try { have = await ollama.tags(base()) } catch (e) { toast('Fehler: ' + e.message) }
+    const names = new Set(have.map((m) => m.name))
+    models.replaceChildren(
+      ...have.map((m) => h('div', { class: 'lrow' }, h('label', {}, h('input', { type: 'radio', name: 'om', checked: a.ollamaModel === m.name, onchange: () => use(m.name) }), ` ${m.name} · ${(m.size / 1e9).toFixed(1)} GB`),
+        h('button', { title: 'Löschen', onclick: async () => { if (confirm(m.name + ' löschen?')) { await ollama.remove(base(), m.name); drawOllama() } } }, '✕'))),
+      h('h4', {}, 'Zum Herunterladen empfohlen'),
+      ...ollama.RECOMMENDED.filter(([n]) => !names.has(n)).map(([n, d]) => {
+        const bar = h('progress', { max: 100, value: 0, hidden: true }), note = h('span', { class: 'muted' }, d), b = h('button', {}, 'Herunterladen')
+        b.onclick = async () => {
+          const ctl = new AbortController()
+          b.textContent = 'Abbrechen'; bar.hidden = false; b.onclick = () => ctl.abort()
+          try { await ollama.pull(base(), n, (p) => { bar.value = p.pct ?? 0; note.textContent = p.status + (p.pct != null ? ` ${p.pct}%` : '') }, ctl.signal); toast(n + ' geladen'); await use(n) } catch (e) { toast(e.name === 'AbortError' ? 'Abgebrochen, ein neuer Start setzt fort' : 'Fehler: ' + e.message); drawOllama() }
+        }
+        return h('div', { class: 'lrow' }, h('span', {}, n), note, bar, b)
+      }))
+  }
   const runBtn = h('button', { class: 'primary', onclick: async () => {
-    Object.assign(S.settings.ai, cfg()); await persist(); out.textContent = 'Frage KI …'
+    Object.assign(a, cfg()); await persist(); out.textContent = 'Frage KI …'
     try {
       const tabs = (await openTabs()).slice(0, 150)
       if (!tabs.length) throw new Error('Keine offenen http(s)-Tabs')
-      showTopics(out, tabs, parseAiTopics(await ai.chat(S.settings.ai, ai.topicsMessages(tabs)), tabs.length))
+      showTopics(out, tabs, parseAiTopics(await ai.chat(a, ai.topicsMessages(tabs)), tabs.length))
     } catch (e) { out.textContent = 'Fehler: ' + e.message }
-  } }, 'Offene Tabs nach Themen sortieren')
-  const body = h('div', {}, h('label', { class: 'row' }, h('span', {}, 'Anbieter'), prov), rowUrl, rowKey, h('label', { class: 'row' }, h('span', {}, 'Modell'), model, dl, loadBtn),
-    h('p', { class: 'muted' }, 'Gesendet werden nur Titel und Domains der offenen Tabs an den gewählten Anbieter (OpenRouter = extern, Ollama = lokal).'), runBtn, out)
-  dialog('KI', body, [{ label: 'Einstellungen speichern', primary: true, fn: async () => { Object.assign(S.settings.ai, cfg()); await persist() } }, { label: 'Schließen' }])
+  } }, 'Offene Tabs nach Themen sortieren (Vorschlag)')
+  sync()
+  dialog('KI', h('div', {}, h('label', { class: 'row' }, h('span', {}, 'Anbieter'), prov), secOl, secOr, runBtn, out),
+    [{ label: 'Einstellungen speichern', primary: true, fn: async () => { Object.assign(a, cfg()); await persist() } }, { label: 'Schließen' }])
 }
 function showTopics(out, tabs, topics) {
   out.replaceChildren(...Object.entries(topics).flatMap(([name, idx]) => [h('h4', {}, `${name} (${idx.length})`), h('ul', {}, idx.map((i) => h('li', {}, tabs[i].title || tabs[i].url)))]),
@@ -602,6 +637,6 @@ function render() { renderHead(); renderPinned(); renderTags(); renderWidgets();
   await applyLook()
   render()
   histItems = await loadItems()
-  renderBars()
+  renderBars(); renderResume()
   for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved']) B.bookmarks[ev].addListener(reloadSoon)
 })()

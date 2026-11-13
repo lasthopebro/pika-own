@@ -11,12 +11,15 @@ Clean-room: kein Code aus Pikamark, siehe `PLAN-DECISIONTREE.md` (Regeln R1-R5).
 - Akzentfarbe, Pitch Black, 8 Hintergründe/Foto/Farbe/Verlauf, Körnung, Parallax
 - Widgets: Uhr mit Zeitzone, Countdown, Timer, Zähler, Textbausteine
 - Seitenleiste mit eigenen Ansichten (Ordner, Tag, Verlauf, Tabs, Suche, Sitzungen, eigene Links)
-- KI: Ollama (Modellliste per `/api/tags`) und OpenRouter, sortiert offene Tabs in Themen
+- **Weitermachen** (v0.2): Karten auf dem neuen Tab, die den Verlauf nach Zeitlücken (30 min) zu Sitzungen gruppieren; „Alle öffnen“ in einem Fenster, funktioniert ohne KI
+- **KI-Dialog** (✨, v0.2): Ollama-Status (grün/rot), Modelle mit Größe wählen, empfohlene Modelle herunterladen (Fortschrittsbalken, Abbrechen, Löschen); OpenRouter mit Schlüssel und nur kostenlosen Modellen, bei Tageslimit Fallback auf das Ollama-Modell
+- Tab-Sortierung nur als **Vorschlag** (Ollama mit JSON-Schema, `think:false`), speichern als Lesezeichen-Ordner „KI-Themen“ oder als Sitzungen
+- Inspirations-Repos: `inspiration/repos.json` füllen (mind. 1, empfohlen 5–6 GitHub-URLs), dann `node tools/analyze_repo.mjs` → `inspiration/report.md`; Ideen daraus mit `inspiration/prompt.md`. Lizenzklasse pro Repo, Code nur bei permissiver Lizenz mit NOTICE
 
 ## Starten
 - Firefox: `about:debugging` → Dieser Firefox → Temporäres Add-on laden → `manifest.json`
 - Brave/Chrome: `brave://extensions` → Entwicklermodus → Entpackte Erweiterung laden → diesen Ordner
-- Ollama braucht `OLLAMA_ORIGINS="moz-extension://*,chrome-extension://*"` und einen Neustart von Ollama.
+- Danach neuen Tab öffnen. KI: ✨ → bei „Ollama nicht erreichbar“ den Hinweis befolgen (Ollama starten; in Chromium ging ein echtes Ollama ohne Zusatzeinstellung, in Firefox ist `OLLAMA_ORIGINS="moz-extension://*,chrome-extension://*"` + Neustart von Ollama die sichere Wahl).
 
 ## Eigene Daten (Seed)
 `npm run seed` liest Kopien aller lokalen Browser und schreibt `data/seed-*.json` (in `.gitignore`).
