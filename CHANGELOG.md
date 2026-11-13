@@ -1,5 +1,15 @@
 # Änderungen
 
+## 0.5.2
+- Links per Strg+V oder Hineinziehen im Board ablegen, Meldung mit Ordner und Rückgängig.
+- „Alle Tabs als Lesezeichen-Ordner speichern“ im Kopf und im Kontextmenü; Speichern über das Kontextmenü nennt den Ordner per Benachrichtigung.
+- Links auf Live-Ordner in der Leiste ziehen; „Als Tab-Gruppe öffnen“ (neue Berechtigung `tabGroups`).
+- Pomodoro im Timer-Widget; Timer laufen im Hintergrund weiter (auch nach Neustart) und melden sich per Systembenachrichtigung.
+- Hinweis auf eine Sicherungsdatei außerhalb des Profils nach 14 Tagen.
+- Seitenleiste: Ansicht „Live-Ordner“ (senkrechte Leiste).
+- Behoben: Leiste auf Webseiten reagiert sofort auf geänderten Seitenzugriff im Add-on-Manager.
+- Behoben: Der Neue Tab überschrieb Änderungen von Hintergrund und Leiste (z. B. per Kontextmenü gespeicherte Sitzungen, erledigte Erinnerungen) mit seinem alten Stand.
+
 ## 0.5.1 (stabil)
 - Erste veröffentlichte Version: v0.1 bis v0.5 zusammengeführt, ohne Konto, ohne Lizenzschlüssel, alle Funktionen frei.
 - Lokal zuerst: KI nur mit Ollama auf dem eigenen Rechner (OpenRouter optional, nur kostenlose Modelle). Es werden nur Titel und Domains gesendet.
