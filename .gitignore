@@ -4,3 +4,4 @@ work/private/
 *.env
 work/N1-*.json
 work/N2-*.json
+dist/
