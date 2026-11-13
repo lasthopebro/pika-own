@@ -1,0 +1,10 @@
+module.exports = {
+  run: [{
+    method: "shell.run",
+    params: {
+      path: "..",
+      message: "ollama list"
+    }
+  }]
+}
+
