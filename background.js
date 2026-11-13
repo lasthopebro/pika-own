@@ -1,5 +1,5 @@
 import { B } from './lib/api.js'
-import { load, save } from './lib/store.js'
+import { load, update } from './lib/store.js'
 import { saveBackup, listBackups } from './lib/backup.js'
 import { openTabs, saveSession } from './lib/sessions.js'
 
@@ -14,12 +14,12 @@ async function syncReminders() {
 }
 
 async function fire(k) {
-  const S = await load()
-  const m = S.meta[k]
-  if (!m?.remind) return
-  await B.notifications.create(k, { type: 'basic', iconUrl: B.runtime.getURL('icon128.png'), title: 'pika-own Erinnerung', message: (m.comment || k).slice(0, 200) })
-  delete m.remind
-  await save(S)
+  await update(async (S) => {
+    const m = S.meta[k]
+    if (!m?.remind) return
+    await B.notifications.create(k, { type: 'basic', iconUrl: B.runtime.getURL('icon128.png'), title: 'pika-own Erinnerung', message: (m.comment || k).slice(0, 200) })
+    delete m.remind
+  })
 }
 
 async function init() {
@@ -49,8 +49,7 @@ B.contextMenus.onClicked.addListener(async (info, tab) => {
     const url = info.linkUrl || info.pageUrl
     await B.bookmarks.create({ title: info.linkUrl ? info.linkUrl : tab?.title || url, url })
   } else if (info.menuItemId === 'save-session') {
-    const S = await load()
-    await saveSession(S, 'Sitzung ' + new Date().toLocaleString('de-DE'), await openTabs())
-    await save(S)
+    const tabs = await openTabs()
+    await update((S) => saveSession(S, 'Sitzung ' + new Date().toLocaleString('de-DE'), tabs))
   }
 })
