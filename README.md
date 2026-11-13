@@ -1,8 +1,24 @@
 # pika-own
 
 Eigenes Lesezeichen-Board als Neuer-Tab-Seite plus Seitenleiste. Firefox und Chromium/Brave (Manifest V3), ohne Build-Schritt, ohne Konto.
-Clean-room: kein Code aus Pikamark, siehe `PLAN-DECISIONTREE.md` (Regeln R1-R5).
+Eigener Code, clean-room: Vorbild ist nur Aussehen und Verhalten, kein fremder Code, siehe `PLAN-DECISIONTREE.md` (Regeln R1-R5).
 
+## Installieren (Release 0.5.1)
+1. Zip aus den [Releases](https://github.com/lasthopebro/pika-own/releases) entpacken (oder Repository klonen).
+2. Brave/Chrome: `brave://extensions` → Entwicklermodus → Entpackte Erweiterung laden → entpackten Ordner wählen.
+3. Firefox: `about:debugging` → Dieser Firefox → Temporäres Add-on laden → `manifest.json` (nach Neustart erneut nötig, solange nicht signiert).
+4. Neuen Tab öffnen. Für KI: Ollama installieren und starten, dann ✨ → Modell wählen oder laden.
+
+## Leiste und Live-Tab-Ordner (v0.4/v0.5)
+- Oben im Neuen Tab: Live-Tab-Ordner, deine Lesezeichenleiste und die meistbesuchten Seiten, wie eine Lesezeichenleiste. Zu breit → „»“.
+- **Live-Tab-Ordner:** ＋ legt einen benannten Ordner an (Symbol änderbar). Im Ordner-Menü: Tab hinzufügen, öffnen ohne Duplikat (vorhandener Tab wird fokussiert), als Sitzung speichern, umbenennen. Die Zuordnung gilt pro URL und überlebt Neustarts.
+- **✨ Tabs sortieren:** KI schlägt Themen vor, „In Live-Ordner übernehmen“, „Rückgängig“ stellt den Stand davor wieder her.
+- **Leiste auf Webseiten:** Einstellungen → „Leiste auf Webseiten einschalten“ (fragt um Zugriff auf alle Seiten; ohne Zustimmung bleibt sie aus). Ausblenden pro Domain, Einklappen mit Alt+Umschalt+B, im Vollbild aus. Nur ein kleiner Ausschnitt (Titel, Domains, Ordner) geht an die Seite, nie der volle Zustand.
+
+## Datenschutz
+Alles bleibt im Browser (`storage.local`). Nichts wird an Dritte gesendet, außer du schaltest OpenRouter ein: dann gehen nur Tab-Titel und Domains an OpenRouter. Mit Ollama bleibt es auf deinem Rechner. Kein Konto, kein Lizenzschlüssel, keine Telemetrie.
+
+Lizenz: MIT (`LICENSE`), Änderungen: `CHANGELOG.md`.
 ## Funktionen
 - Board (Spalten, Galerie `V`), Palette `F` (`>` Aktion, `/` Ordner, `@` Workspace, `#` Tag), Auswahlmodus `S`, Drag & Drop
 - Schnellwahl-Leisten aus dem Verlauf (frei konfigurierbar), Rechtsklick = Unterseiten der Domain
