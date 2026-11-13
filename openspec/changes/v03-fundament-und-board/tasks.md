@@ -25,7 +25,16 @@
 - [ ] 4.3 Sortierung (Manuell, A–Z, Zuletzt) nur für die Anzeige
 - [ ] 4.4 Workspace-Menü (wechseln, anlegen, umbenennen, löschen)
 - [ ] 4.5 Sitzungs-Popover (Name mit Datum, Liste mit Alter und Tab-Anzahl, öffnen, löschen)
-- [ ] 4.6 Widgets: Countdown, Zähler mit Ziel-Balken, Notiz/Checkliste, Foto-Widget (neben Uhr, Timer, Textbausteinen)
+- [ ] 4.6 Widgets: Countdown, Zähler mit Ziel-Balken, Notiz/Checkliste (Taste N), Foto-Widget (neben Uhr, Timer, Textbausteinen)
+- [ ] 4.7 Ansichten Spalten, Galerie (Raster/Liste), Kompakte Zeilen, Zentriert mit großer Uhr; Taste V; Ansicht pro Workspace
+- [ ] 4.8 Toolbar-Popup: Suche und „Diesen Tab speichern“ mit Ordnerauswahl
+- [ ] 4.9 Papierkorb (7 Tage, höchstens 20 Einträge) und Rückgängig; Wiederherstellung bei fehlendem Elternordner in die Lesezeichenleiste
+- [ ] 4.10 Dubletten-Finder mit „Je eines behalten“, Tags und Favoriten übernehmen, Rückgängig
+- [ ] 4.11 Entdeckungs-Ordner „Zuletzt hinzugefügt“ und „Meistbesucht“ als Spalten
+- [ ] 4.12 Auswahlmodus (S, Umschalt-Klick, Ziehen) mit Massenaktionen, „Alle öffnen“, „In Ordner verschieben“
+- [ ] 4.13 Aussehen: fünf Akzente plus frei, Schriftart Sans/Mono/Serif, Look pro Workspace
+- [ ] 4.14 Sprachen Deutsch und Englisch (Texte aus einer Datei, unabhängig von der Browsersprache)
+- [ ] 4.15 Prüfen, dass Deinstallation Lesezeichen unberührt lässt und ein Export der Zusatzdaten vorher möglich ist
 
 ## 5. Freie Pro-Funktionen und Sicherung
 

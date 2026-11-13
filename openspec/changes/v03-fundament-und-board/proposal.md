@@ -10,6 +10,7 @@ Der gespeicherte Zustand (`storage.local`, Schlüssel `pika`) wird bei jedem `sa
 - Schema-Version 2 mit verlustfreier Migration von v1 und Sicherung davor.
 - `newtab.js` wird in ES-Module aufgeteilt; `newtab.js` selbst bleibt nur Verdrahtung.
 - Board-Parität zum Vorbild (eigener Code, kein Code, Name oder Material von Pikamark): Werkzeugleiste, getönte Spalten mit Emoji und Farbpunkt, verschachtelte Ordner, Workspace-Menü, Sitzungs-Popover, Widgets inklusive Foto-Widget.
+- Funktionsvergleich mit der öffentlichen Beschreibung des Vorbilds (pikamark.app, nur Funktionen und Aussehen): zusätzlich Ansichten (Spalten, Galerie, Kompakt, Zentriert), Toolbar-Popup "Tab speichern", Papierkorb, Dubletten-Finder, Entdeckungs-Ordner, Auswahlmodus, Aussehen pro Workspace, Deutsch und Englisch.
 - Alle Pro-Funktionen sind frei und ohne Lizenzprüfung. Sicherung zusätzlich als Datei im Download-Ordner (Unterordner `pika-own`).
 - Keine Breaking Changes: vorhandene Daten werden migriert.
 
@@ -27,3 +28,4 @@ Der gespeicherte Zustand (`storage.local`, Schlüssel `pika`) wird bei jedem `sa
 - `background.js`, `newtab.js`, `sidebar.js`, `lib/store.js`; neu `lib/bus.js`, `lib/board.js`, `lib/toolbar.js`, `lib/widgets.js`, `lib/sessions-ui.js`.
 - `manifest.json`: Berechtigung `downloads`.
 - Version: v0.3. Branch `agent/claude/v03-fundament-board`, PR als Draft.
+
