@@ -570,6 +570,12 @@ function settingsDlg() {
   const extra = h('div', { class: 'btns' }, photo,
     h('button', { type: 'button', onclick: () => photo.click() }, 'Foto als Hintergrund …'),
     h('button', { type: 'button', onclick: barsDlg }, 'Schnellwahl-Leisten …'),
+    h('button', { type: 'button', onclick: async () => {
+      const pb = S.settings.pagebar
+      if (!pb.on && !(await B.permissions.request({ origins: ['<all_urls>'] }))) return toast('Ohne Zugriff auf alle Seiten kann die Leiste dort nicht erscheinen')
+      pb.on = !pb.on; await persist(); await B.runtime.sendMessage({ type: 'pagebar' })
+      toast(pb.on ? 'Leiste auf Webseiten an (geöffnete Seiten neu laden)' : 'Leiste auf Webseiten aus')
+    } }, S.settings.pagebar.on ? 'Leiste auf Webseiten ausschalten' : 'Leiste auf Webseiten einschalten …'),
     h('button', { type: 'button', onclick: backupsDlg }, 'Sicherungen …'),
     h('button', { type: 'button', onclick: seedDlg }, 'Seed importieren …'))
   ask('Einstellungen', [
@@ -585,9 +591,11 @@ function settingsDlg() {
     { name: 'grain', label: 'Körnung', type: 'range', min: 0, max: 100, value: bg.grain },
     { name: 'parallax', label: 'Parallax', type: 'checkbox', value: bg.parallax },
     { name: 'hidden', label: 'Ausgeblendete Domains', value: s.hidden.join(', '), placeholder: 'a.com, b.org' },
+    { name: 'pbExclude', label: 'Leiste auf Webseiten ausblenden bei', value: s.pagebar.exclude, placeholder: 'bank.de, mail.com' },
   ], { ok: 'Speichern', extra }).then(async (v) => {
     if (!v) return
     Object.assign(s, { theme: v.theme, accent: v.accent, pitch: v.pitch, view: v.view, favicons: v.favicons, hidden: v.hidden.split(',').map((x) => x.trim()).filter(Boolean) })
+    s.pagebar.exclude = v.pbExclude.trim()
     Object.assign(bg, { type: v.bgType, preset: v.preset, c1: v.c1, c2: v.c2, intensity: v.intensity, grain: v.grain, parallax: v.parallax })
     await persist(); await applyLook(); render()
   })
