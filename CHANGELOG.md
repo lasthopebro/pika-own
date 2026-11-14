@@ -1,5 +1,11 @@
 # Änderungen
 
+## Unveröffentlicht
+- Papierkorb (7 Tage, höchstens 20 Einträge) mit Wiederherstellen; Löschen geht immer zuerst dorthin.
+- Dubletten-Finder mit „Je eines behalten“ (Tags und Favoriten bleiben, sie hängen an der URL).
+- Optionale Spalten „Zuletzt hinzugefügt“ und „Meistbesucht“, Ansicht „Kompakte Zeilen“, Schriftart Sans/Mono/Serif.
+- Behoben (Audit): Wiederherstellen verlor Lesezeichen, die sich nur in `#…` oder Groß/Klein unterscheiden; Datei-Export ohne API-Schlüssel; CI mit Unit-Tests, Lint und E2E.
+
 ## 0.5.2
 - Links per Strg+V oder Hineinziehen im Board ablegen, Meldung mit Ordner und Rückgängig.
 - „Alle Tabs als Lesezeichen-Ordner speichern“ im Kopf und im Kontextmenü; Speichern über das Kontextmenü nennt den Ordner per Benachrichtigung.
@@ -32,5 +38,5 @@
 ## Bekannte Grenzen
 - Firefox und Brave wurden in dieser Version nicht von Hand geprüft; getestet wurde mit Chromium (Playwright).
 - Firefox lädt unsignierte Erweiterungen nur vorübergehend (about:debugging); dauerhaft braucht eine Signatur.
-- Nicht enthalten: Board-Funktionen aus v0.3 Punkt 4.x, die über das Bestehende hinausgehen, sowie v0.6.
+- Noch offen aus v0.3 Punkt 4.x: Notiz/Foto-Widget, Ansicht „Zentriert“, Toolbar-Popup, Sprachen DE/EN, Modulaufteilung von newtab.js; dazu v0.6.
 - Die Leiste auf Webseiten schiebt die Seite um 30 px nach unten; Seiten mit eigenen fixierten Kopfzeilen können sich überlagern.
