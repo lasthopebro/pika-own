@@ -34,3 +34,11 @@ test('discovery: zuletzt und meistbesucht', () => {
   const hist = [{ url: 'https://a.de', visitCount: 7 }, { url: 'https://c.de/', visitCount: 3 }]
   assert.deepEqual(discovery('top', n, hist).map((x) => x.id), [1, 3])
 })
+
+
+import { mdLink } from '../lib/board.js'
+test('mdLink: [Titel](Adresse), Klammern und Umbrüche maskiert, Titel leer -> Adresse', () => {
+  assert.equal(mdLink('Titel', 'https://a.de/x'), '[Titel](https://a.de/x)')
+  assert.equal(mdLink('A [x]\n b', 'https://a.de/p(1)'), '[A \\[x\\] b](https://a.de/p%281%29)')
+  assert.equal(mdLink('', 'https://z.de'), '[https://z.de](https://z.de)')
+})

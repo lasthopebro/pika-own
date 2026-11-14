@@ -10,7 +10,7 @@ import { openTabs, saveSession, openSession } from './lib/sessions.js'
 import * as ai from './lib/ai.js'
 import * as ollama from './lib/ollama.js'
 import { resumeCards } from './lib/resume.js'
-import { trashAdd, restoreParent, findDupes, discovery } from './lib/board.js'
+import { trashAdd, restoreParent, findDupes, discovery, mdLink } from './lib/board.js'
 import { urlsFromText, timerLeft, backupNagDue, NAG_MS, absorb } from './lib/quick.js'
 
 let S, T, histItems = [], filterTag = '', selMode = false, focus = null, drag = null, importing = false
@@ -24,7 +24,10 @@ const ws = () => S.workspaces.find((w) => w.id === S.currentWs) || S.workspaces[
 const mk = (n) => n.url || 'f:' + n.id
 const mt = (k) => (S.meta[k] ||= {})
 const go = (url) => { location.href = url }
-const btn = (t, title, fn) => h('button', { class: 'ico', title, onclick: fn }, t)
+const I = (name, label) => globalThis.PikaIcons.icon(name, label)
+// Symbol-Knopf: der Name steht in title und aria-label, das Symbol selbst bleibt stumm.
+const btn = (name, label, fn) => h('button', { class: 'ico', title: label, 'aria-label': label, onclick: fn }, I(name))
+const copy = (text, msg) => navigator.clipboard.writeText(text).then(() => toast(msg), () => toast('Kopieren nicht möglich'))
 const COLORS = [['', 'Keine'], ['#ef4444', 'Rot'], ['#f97316', 'Orange'], ['#eab308', 'Gelb'], ['#22c55e', 'Grün'], ['#3b82f6', 'Blau'], ['#a855f7', 'Violett']]
 const FONTS = { sans: '', mono: 'ui-monospace,Consolas,monospace', serif: 'Georgia,serif' }
 const PRESETS = {
@@ -100,10 +103,18 @@ function renderHead() {
   const wsSel = h('select', { onchange: async (e) => { S.currentWs = e.target.value; focus = null; await persist(); render() } },
     S.workspaces.map((w) => h('option', { value: w.id, selected: w.id === S.currentWs }, w.name)))
   $('top').replaceChildren(h('b', { class: 'logo' }, 'pika-own'), wsSel,
-    btn('＋', 'Workspace anlegen', newWs), btn('✎', 'Workspace bearbeiten', editWs),
-    h('button', { class: 'search', onclick: palette }, 'Suchen … (F)'),
-    btn('☑', 'Auswahlmodus (S)', toggleSel), btn('▦', 'Board / Galerie (V)', toggleView),
-    btn('⤓', 'Alle Tabs als Ordner speichern', saveTabsFolder), btn('⏱', 'Tab-Sitzungen', sessionsDlg), btn('✨', 'KI', aiDlg), btn('▣', 'Widget hinzufügen', addWidget), btn('⚙', 'Einstellungen', settingsDlg))
+    h('button', { class: 'search', 'aria-label': 'Suchen (F)', onclick: palette }, I('search'), 'Suchen … (F)'),
+    btn('select', 'Auswahlmodus (S)', toggleSel), btn('view', 'Board / Galerie (V)', toggleView),
+    btn('save', 'Alle Tabs als Ordner speichern', saveTabsFolder), btn('ai', 'KI', aiDlg), btn('settings', 'Einstellungen', settingsDlg),
+    btn('more', 'Mehr', moreMenu))
+}
+// Seltenes aus dem Kopf: Workspaces, Widget, Sitzungen.
+function moreMenu(e) {
+  menu(e, [
+    { label: 'Workspace anlegen', icon: 'plus', kbd: 'N', fn: newWs }, { label: 'Workspace bearbeiten', icon: 'edit', fn: editWs },
+    { label: 'Widget hinzufügen', icon: 'widget', fn: addWidget }, { label: 'Tab-Sitzungen', icon: 'clock', fn: sessionsDlg },
+    { sep: 1 }, { label: 'Tastenkürzel', icon: 'keyboard', kbd: '?', fn: keysDlg },
+  ])
 }
 function renderPinned() {
   $('pinned').replaceChildren(...ws().pinned.map((p) => h('a', {
@@ -224,7 +235,7 @@ function widgetEl(w) {
     box.append(h('button', { onclick: step(-1) }, '−'), h('button', { onclick: step(1) }, '+'))
   } else if (w.type === 'snippets') {
     box.append(...w.items.map((t) => h('button', { onclick: () => { navigator.clipboard.writeText(t); toast('Kopiert') } }, t.slice(0, 28))),
-      h('button', { onclick: async () => { const v = await ask('Textbausteine', [{ name: 'items', label: 'Einer pro Zeile', type: 'textarea', rows: 6, value: w.items.join('\n') }]); if (v) { w.items = v.items.split('\n').map((x) => x.trim()).filter(Boolean); await persist(); renderWidgets() } } }, '✎'))
+      h('button', { title: 'Textbausteine bearbeiten', 'aria-label': 'Textbausteine bearbeiten', onclick: async () => { const v = await ask('Textbausteine', [{ name: 'items', label: 'Einer pro Zeile', type: 'textarea', rows: 6, value: w.items.join('\n') }]); if (v) { w.items = v.items.split('\n').map((x) => x.trim()).filter(Boolean); await persist(); renderWidgets() } } }, I('edit')))
   }
   return box
 }
@@ -234,7 +245,7 @@ async function addWidget() {
   const F = {
     clock: [{ name: 'tz', label: 'Zeitzone (leer = lokal)', placeholder: 'Asia/Tokyo' }],
     countdown: [{ name: 'label', label: 'Name' }, { name: 'to', label: 'Ziel', type: 'datetime-local' }],
-    timer: [{ name: 'minutes', label: 'Minuten', type: 'number', value: 25, min: 1 }, { name: 'pomo', label: 'Pomodoro (Arbeit und Pause im Wechsel)', type: 'checkbox' }, { name: 'brk', label: 'Pause (Minuten)', type: 'number', value: 5, min: 1 }],
+    timer: [{ name: 'minutes', label: 'Minuten', type: 'number', value: S.settings.pomo.work, min: 1 }, { name: 'pomo', label: 'Pomodoro (Arbeit und Pause im Wechsel)', type: 'checkbox' }, { name: 'brk', label: 'Pause (Minuten)', type: 'number', value: S.settings.pomo.brk, min: 1 }],
     counter: [{ name: 'label', label: 'Name' }],
     snippets: [{ name: 'items', label: 'Einer pro Zeile', type: 'textarea', rows: 5 }],
   }[t.type]
@@ -258,7 +269,10 @@ function itemEl(n) {
   const cb = selMode ? h('input', { type: 'checkbox', checked: sel.has(n.id) }) : null
   const a = h('a', {
     class: 'item' + (sel.has(n.id) ? ' sel' : ''), href: n.url, draggable: true, title: n.url, style: { '--lc': m.color || 'transparent' },
-    onclick: (e) => { if (selMode) { e.preventDefault(); sel.has(n.id) ? sel.delete(n.id) : sel.add(n.id); a.classList.toggle('sel'); if (cb) cb.checked = sel.has(n.id); renderSelBar() } },
+    onclick: (e) => {
+      if (selMode) { e.preventDefault(); sel.has(n.id) ? sel.delete(n.id) : sel.add(n.id); a.classList.toggle('sel'); if (cb) cb.checked = sel.has(n.id); renderSelBar() }
+      else if (S.settings.openInNewTab && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) { e.preventDefault(); B.tabs.create({ url: n.url }).catch(() => {}) } // Option: Board-Links im neuen Tab
+    },
     oncontextmenu: (e) => { e.preventDefault(); itemMenu(e, n) },
     ondragstart: () => { drag = n.id }, ondragover: (e) => e.preventDefault(),
     ondrop: (e) => { e.preventDefault(); e.stopPropagation(); dropOn(n.parentId, n.index, e) },
@@ -271,7 +285,7 @@ function itemEl(n) {
 function folderEl(n) {
   const d = h('details', { class: 'sub', open: S.open[n.id] ?? true },
     h('summary', { oncontextmenu: (e) => { e.preventDefault(); colMenu(e, n, true) }, ondragover: (e) => e.preventDefault(), ondrop: (e) => { e.preventDefault(); e.stopPropagation(); dropOn(n.id, undefined, e) } },
-      h('span', {}, '📁 ' + (n.title || 'Ordner')), h('span', { class: 'muted' }, ' ' + countUrls(n))),
+      h('span', {}, I('folder'), ' ' + (n.title || 'Ordner')), h('span', { class: 'muted' }, ' ' + countUrls(n))),
     h('div', { class: 'subbody' }, (n.children || []).filter(passes).map((c) => (c.url ? itemEl(c) : folderEl(c)))))
   d.addEventListener('toggle', () => { if (d.open !== (S.open[n.id] ?? true)) { S.open[n.id] = d.open; persist() } })
   return d
@@ -281,7 +295,7 @@ function colEl(f) {
   return h('section', {
     class: 'col', style: { '--c': cm.color || 'var(--bd)' }, ondragover: (e) => e.preventDefault(),
     ondrop: (e) => { e.preventDefault(); dropOn(f.virtual ? barOf(T).id : f.id, undefined, e) },
-  }, h('header', { class: 'colhead' }, h('span', { class: 'colname' }, cm.name || f.title || '(ohne Namen)'), h('span', { class: 'muted' }, String(countUrls(f))), h('button', { class: 'ico', onclick: (e) => colMenu(e, f) }, '⋯')),
+  }, h('header', { class: 'colhead' }, h('span', { class: 'colname' }, cm.name || f.title || '(ohne Namen)'), h('span', { class: 'muted' }, String(countUrls(f))), h('button', { class: 'ico', title: 'Spaltenmenü', 'aria-label': 'Spaltenmenü', onclick: (e) => colMenu(e, f) }, I('more'))),
   h('div', { class: 'colbody' }, (f.children || []).filter(passes).map((n) => (n.url ? itemEl(n) : folderEl(n)))))
 }
 function renderBoard() {
@@ -341,20 +355,29 @@ function openAll(n) {
 function itemMenu(e, n) {
   const m = S.meta[mk(n)] || {}
   const targets = sel.size && sel.has(n.id) ? [...sel].map((id) => byId.get(id)).filter(Boolean) : [n]
+  const lfSub = S.lf.length ? S.lf.map((f) => ({ label: `${f.icon} ${f.name}`, fn: async () => {
+    await B.runtime.sendMessage({ type: 'lf', op: 'assign', args: [f.id, n.url, n.title || n.url] })
+    toast(`In „${f.name}“ gelegt`)
+  } })) : [{ label: 'Noch kein Live-Ordner (Leiste: Plus)', disabled: true }]
   menu(e, [
-    n.url ? { label: 'In neuem Tab öffnen', fn: () => B.tabs.create({ url: n.url }) } : { label: 'Alle öffnen', fn: () => openAll(n) },
-    { label: m.fav ? '★ Favorit entfernen' : '☆ Favorit', fn: () => patch(targets, (x) => { x.fav = !m.fav }) },
-    n.url && { label: ws().pinned.some((p) => p.url === n.url) ? 'Pin entfernen' : 'Anpinnen', fn: () => togglePin(n.url, n.title) },
+    n.url ? { label: 'In neuem Tab öffnen', icon: 'right', fn: () => B.tabs.create({ url: n.url }) } : { label: 'Alle öffnen', icon: 'right', fn: () => openAll(n) },
+    n.url && { label: 'In neuem Fenster öffnen', icon: 'window', fn: () => B.windows.create({ url: n.url }) },
+    n.url && { label: 'In Live-Ordner legen', icon: 'folder', sub: lfSub },
+    n.url && { label: 'Link kopieren', icon: 'link', fn: () => copy(n.url, 'Link kopiert') },
+    n.url && { label: 'Als Markdown kopieren', icon: 'copy', fn: () => copy(mdLink(n.title, n.url), 'Markdown kopiert') },
     { sep: 1 },
-    { label: 'Tags …', fn: () => tagsDlg(targets) },
+    { label: m.fav ? 'Favorit entfernen' : 'Favorit', icon: 'star', fn: () => patch(targets, (x) => { x.fav = !m.fav }) },
+    n.url && { label: ws().pinned.some((p) => p.url === n.url) ? 'Pin entfernen' : 'Anpinnen', icon: 'pin', fn: () => togglePin(n.url, n.title) },
+    { sep: 1 },
+    { label: 'Tags …', icon: 'tag', fn: () => tagsDlg(targets) },
     { label: 'Kommentar …', fn: () => commentDlg(n) },
-    { label: 'Erinnerung …', fn: () => remindDlg(n) },
+    { label: 'Erinnerung …', icon: 'bell', fn: () => remindDlg(n) },
     { label: 'Icon (Emoji) …', fn: () => iconDlg(n) },
-    { label: 'Farbmarkierung …', fn: () => colorDlg(targets) },
+    { label: 'Farbmarkierung …', icon: 'palette', fn: () => colorDlg(targets) },
     { sep: 1 },
-    { label: 'Umbenennen …', fn: () => renameOne(n) },
+    { label: 'Umbenennen …', icon: 'edit', fn: () => renameOne(n) },
     { label: targets.length > 1 ? `Sammelumbenennen (${targets.length}) …` : 'Sammelumbenennen …', fn: () => bulkRename(targets) },
-    { label: 'Löschen', fn: () => del(targets) },
+    { label: 'Löschen', icon: 'trash', fn: () => del(targets) },
   ])
 }
 function colMenu(e, f, isSub) {
@@ -403,8 +426,11 @@ async function remindDlg(n) {
   if (v.off || !v.when) delete m.remind; else m.remind = new Date(v.when).getTime()
   await persist(); renderBoard()
 }
+// 24 Emoji als Knöpfe (Tastatur: Tab und Enter); pick(emoji, event) setzt die Auswahl.
+const emojiGrid = (pick) => h('div', { class: 'egrid' }, PikaIcons.EMOJI.map((em) => h('button', { type: 'button', title: 'Symbol ' + em, 'aria-label': 'Symbol ' + em, onclick: (e) => pick(em, e) }, em)))
 async function iconDlg(n) {
-  const v = await ask('Icon', [{ name: 'i', label: 'Emoji (leer = Standard)', value: S.meta[mk(n)]?.icon || '' }])
+  const grid = emojiGrid((em, e) => { e.currentTarget.closest('form').querySelector('input').value = em })
+  const v = await ask('Icon', [{ name: 'i', label: 'Emoji (leer = Standard)', value: S.meta[mk(n)]?.icon || '' }], { extra: grid })
   if (!v) return
   const m = mt(mk(n)); v.i.trim() ? (m.icon = [...v.i.trim()].slice(0, 2).join('')) : delete m.icon
   await persist(); renderBoard()
@@ -418,10 +444,21 @@ async function renameOne(n) {
   if (v) await B.bookmarks.update(n.id, { title: v.t })
 }
 async function del(nodes) {
-  if (!confirm(`${nodes.length} Eintrag/Einträge löschen? (Ordner mit Inhalt)`)) return
+  // Einzelne Links ohne Nachfrage nur, wenn die Option aus ist (dann mit Rückgängig); Ordner immer mit Bestätigung.
+  const quiet = !S.settings.confirmDelete && nodes.every((n) => n.url)
+  if (!quiet && !confirm(`${nodes.length} Eintrag/Einträge löschen? (Ordner mit Inhalt)`)) return
+  const snap = nodes.map(({ parentId, index, title, url }) => ({ parentId, index, title, url }))
   await trashNodes(nodes)
   sel.clear()
-  toast('In den Papierkorb verschoben (7 Tage)')
+  if (!quiet) return toast('In den Papierkorb verschoben (7 Tage)')
+  toast(snap.length === 1 ? 'Link gelöscht' : `${snap.length} Links gelöscht`, { label: 'Rückgängig', fn: async () => {
+    for (const x of snap.sort((p, q) => p.index - q.index)) {
+      const props = { parentId: x.parentId, title: x.title, url: x.url }
+      await B.bookmarks.create({ ...props, index: x.index }).catch(() => B.bookmarks.create(props)).catch((e) => toast(e.message))
+    }
+    S.trash = S.trash.filter((e) => !snap.some((x) => e.tree.url === x.url && e.parentId === x.parentId && e.index === x.index))
+    await persist(); toast('Wiederhergestellt')
+  } })
 }
 // Erst in den Papierkorb, dann löschen: ein Fehler beim Löschen verliert nichts.
 async function trashNodes(nodes) {
@@ -536,9 +573,21 @@ addEventListener('keydown', (e) => {
   else if (k === 's') toggleSel()
   else if (k === 'v') toggleView()
   else if (k === 'n') newWs()
-  else if (k === '?') toast('F Suche · S Auswahl · V Ansicht · N Workspace · Rechtsklick: Menüs')
+  else if (k === '?') keysDlg()
   else if (k === 'escape') { if (selMode) toggleSel(); else if (focus) { focus = null; renderBoard() } else if (filterTag) { filterTag = ''; renderTags(); renderBoard() } }
 })
+
+/* ---------- Tastenkürzel ---------- */
+async function keysDlg() {
+  const cmds = ((await B.commands?.getAll?.().catch(() => [])) || []).filter((c) => c.description)
+  const table = (rows) => h('table', { class: 'keys' }, rows.map(([k, d]) => h('tr', {}, h('td', {}, h('kbd', {}, k)), h('td', {}, d))))
+  dialog('Tastenkürzel', h('div', {},
+    h('h4', {}, 'Im Neuen Tab'),
+    table([['F', 'Suche'], ['S', 'Auswahlmodus'], ['V', 'Board / Galerie'], ['N', 'Neuer Workspace'], ['?', 'Diese Übersicht'], ['Esc', 'Auswahl, Ausschnitt oder Tag-Filter zurücksetzen'], ['/', 'Suchfeld im Einstellungsdialog'], ['Pfeile, Pos1, Ende, Enter, Esc', 'in jedem Menü']]),
+    h('h4', {}, 'Im Browser'),
+    table(cmds.map((c) => [c.shortcut || 'nicht belegt', c.description])),
+    h('p', { class: 'muted' }, 'Die Browser-Kürzel änderst du in Chrome, Brave und Edge unter chrome://extensions/shortcuts, in Firefox unter about:addons (Zahnrad, „Tastenkürzel verwalten“).')))
+}
 
 /* ---------- Workspaces ---------- */
 async function newWs() {
@@ -569,7 +618,7 @@ function sessionsDlg() {
   const draw = () => body.replaceChildren(...(S.sessions.length ? S.sessions.map((s) => h('div', { class: 'lrow' },
     h('span', {}, `${s.name} · ${s.tabs.length} Tabs · ${new Date(s.ts).toLocaleString('de-DE')}`),
     h('button', { onclick: () => openSession(s) }, 'Öffnen'),
-    h('button', { onclick: async () => { S.sessions = S.sessions.filter((x) => x !== s); await persist(); draw() } }, '✕'))) : [h('p', { class: 'muted' }, 'Noch keine Sitzungen.')]))
+    h('button', { title: 'Sitzung löschen', 'aria-label': 'Sitzung löschen', onclick: async () => { S.sessions = S.sessions.filter((x) => x !== s); await persist(); draw() } }, I('close')))) : [h('p', { class: 'muted' }, 'Noch keine Sitzungen.')]))
   draw()
   dialog('Tab-Sitzungen', body, [{ label: 'Aktuelle Tabs speichern', primary: true, fn: async () => {
     const v = await ask('Name der Sitzung', [{ name: 'n', label: 'Name', value: new Date().toLocaleString('de-DE') }])
@@ -605,7 +654,7 @@ function aiDlg() {
     const names = new Set(have.map((m) => m.name))
     models.replaceChildren(
       ...have.map((m) => h('div', { class: 'lrow' }, h('label', {}, h('input', { type: 'radio', name: 'om', checked: a.ollamaModel === m.name, onchange: () => use(m.name) }), ` ${m.name} · ${(m.size / 1e9).toFixed(1)} GB`),
-        h('button', { title: 'Löschen', onclick: async () => { if (confirm(m.name + ' löschen?')) { await ollama.remove(base(), m.name); drawOllama() } } }, '✕'))),
+        h('button', { title: 'Löschen', 'aria-label': 'Modell ' + m.name + ' löschen', onclick: async () => { if (confirm(m.name + ' löschen?')) { await ollama.remove(base(), m.name); drawOllama() } } }, I('close')))),
       h('h4', {}, 'Zum Herunterladen empfohlen'),
       ...ollama.RECOMMENDED.filter(([n]) => !names.has(n)).map(([n, d]) => {
         const bar = h('progress', { max: 100, value: 0, hidden: true }), note = h('span', { class: 'muted' }, d), b = h('button', {}, 'Herunterladen')
@@ -646,46 +695,67 @@ function showTopics(out, tabs, topics) {
 
 /* ---------- Einstellungen, Sicherungen, Seed ---------- */
 function settingsDlg() {
-  const s = S.settings, bg = s.bg
+  const s = S.settings, bg = s.bg, pb = s.pagebar
   const photo = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: (e) => {
     const f = e.target.files[0]; if (!f) return
     const r = new FileReader()
     r.onload = async () => { await B.storage.local.set({ pika_photo: r.result }); bg.type = 'photo'; await persist(); applyLook(); toast('Foto gesetzt') }
     r.readAsDataURL(f)
   } })
-  const extra = h('div', { class: 'btns' }, photo,
-    h('button', { type: 'button', onclick: () => photo.click() }, 'Foto als Hintergrund …'),
-    h('button', { type: 'button', onclick: barsDlg }, 'Schnellwahl-Leisten …'),
-    h('button', { type: 'button', onclick: async () => {
-      const pb = S.settings.pagebar
-      if (!pb.on && !(await B.permissions.request({ origins: ['<all_urls>'] }))) return toast('Ohne Zugriff auf alle Seiten kann die Leiste dort nicht erscheinen')
-      pb.on = !pb.on; await persist(); await B.runtime.sendMessage({ type: 'pagebar' })
-      toast(pb.on ? 'Leiste auf Webseiten an (geöffnete Seiten neu laden)' : 'Leiste auf Webseiten aus')
-    } }, S.settings.pagebar.on ? 'Leiste auf Webseiten ausschalten' : 'Leiste auf Webseiten einschalten …'),
-    h('button', { type: 'button', onclick: backupsDlg }, 'Sicherungen …'),
-    h('button', { type: 'button', onclick: seedDlg }, 'Seed importieren …'))
+  // Knopf-Zeile für eine Option, die kein Feld ist (eigener Dialog, Berechtigung, Datei); label dient der Suche.
+  const act = (label, text, fn) => ({ label: `${label} ${text}`, node: h('div', { class: 'btns' }, h('button', { type: 'button', onclick: fn }, text)) })
+  const pbToggle = (e) => (async () => {
+    if (!pb.on && !(await B.permissions.request({ origins: ['<all_urls>'] }))) return toast('Ohne Zugriff auf alle Seiten kann die Leiste dort nicht erscheinen')
+    pb.on = !pb.on; await persist(); await B.runtime.sendMessage({ type: 'pagebar' })
+    e.target.textContent = pb.on ? 'Leiste auf Webseiten ausschalten' : 'Leiste auf Webseiten einschalten …'
+    toast(pb.on ? 'Leiste auf Webseiten an (geöffnete Seiten neu laden)' : 'Leiste auf Webseiten aus')
+  })()
   ask('Einstellungen', [
+    { section: 'Aussehen' },
     { name: 'theme', label: 'Design', type: 'select', value: s.theme, options: [['system', 'System'], ['light', 'Hell'], ['dark', 'Dunkel']] },
     { name: 'accent', label: 'Akzentfarbe', type: 'color', value: s.accent },
     { name: 'pitch', label: 'Pitch Black (nur dunkel)', type: 'checkbox', value: s.pitch },
-    { name: 'view', label: 'Ansicht', type: 'select', value: s.view, options: [['board', 'Board'], ['gallery', 'Galerie'], ['compact', 'Kompakte Zeilen']] },
     { name: 'font', label: 'Schriftart', type: 'select', value: s.font, options: [['sans', 'Sans'], ['mono', 'Mono'], ['serif', 'Serif']] },
-    { name: 'discover', label: 'Spalten „Zuletzt hinzugefügt“ und „Meistbesucht“', type: 'checkbox', value: s.discover },
-    { name: 'favicons', label: 'Seiten-Icons laden (Netzwerk)', type: 'checkbox', value: s.favicons },
     { name: 'bgType', label: 'Hintergrund', type: 'select', value: bg.type, options: [['none', 'Keiner'], ['preset', 'Vorlage'], ['color', 'Farbe'], ['gradient', 'Verlauf'], ['photo', 'Foto']] },
     { name: 'preset', label: 'Vorlage', type: 'select', value: bg.preset, options: Object.keys(PRESETS) },
     { name: 'c1', label: 'Farbe 1', type: 'color', value: bg.c1 }, { name: 'c2', label: 'Farbe 2', type: 'color', value: bg.c2 },
     { name: 'intensity', label: 'Intensität', type: 'range', min: 0, max: 100, value: bg.intensity },
     { name: 'grain', label: 'Körnung', type: 'range', min: 0, max: 100, value: bg.grain },
     { name: 'parallax', label: 'Parallax', type: 'checkbox', value: bg.parallax },
+    { ...act('Hintergrund', 'Foto als Hintergrund …', () => photo.click()), keywords: 'bild' }, { label: '', node: photo },
+    { section: 'Leiste' },
+    { name: 'newtabBar', label: 'Leiste im Neuen Tab anzeigen', type: 'checkbox', value: s.newtabBar },
+    act('Leiste auf Webseiten', pb.on ? 'Leiste auf Webseiten ausschalten' : 'Leiste auf Webseiten einschalten …', pbToggle),
+    { name: 'pbExclude', label: 'Leiste auf Webseiten ausblenden bei', value: pb.exclude, placeholder: 'bank.de, mail.com' },
+    { section: 'Schnellwahl' },
+    { name: 'quick', label: 'Schnellwahl-Einträge in der Leiste (0 bis 20)', type: 'number', min: 0, max: 20, value: pb.quick },
     { name: 'hidden', label: 'Ausgeblendete Domains', value: s.hidden.join(', '), placeholder: 'a.com, b.org' },
-    { name: 'pbExclude', label: 'Leiste auf Webseiten ausblenden bei', value: s.pagebar.exclude, placeholder: 'bank.de, mail.com' },
-  ], { ok: 'Speichern', extra }).then(async (v) => {
+    act('Schnellwahl', 'Schnellwahl-Leisten …', barsDlg),
+    { section: 'Board' },
+    { name: 'view', label: 'Ansicht', type: 'select', value: s.view, options: [['board', 'Board'], ['gallery', 'Galerie'], ['compact', 'Kompakte Zeilen']] },
+    { name: 'discover', label: 'Spalten „Zuletzt hinzugefügt“ und „Meistbesucht“', type: 'checkbox', value: s.discover },
+    { name: 'openInNewTab', label: 'Links im Board im neuen Tab öffnen', type: 'checkbox', value: s.openInNewTab },
+    { name: 'confirmDelete', label: 'Löschen einzelner Links bestätigen (aus: mit Rückgängig)', type: 'checkbox', value: s.confirmDelete },
+    act('Seed Import', 'Seed importieren …', seedDlg),
+    { section: 'Erinnerungen & Timer' },
+    { name: 'pomoWork', label: 'Pomodoro: Arbeit (Minuten)', type: 'number', min: 1, max: 180, value: s.pomo.work },
+    { name: 'pomoBrk', label: 'Pomodoro: Pause (Minuten)', type: 'number', min: 1, max: 60, value: s.pomo.brk },
+    { section: 'Sicherung' },
+    { name: 'nagDays', label: 'Hinweis auf Sicherungsdatei', type: 'select', value: s.backup.nagDays, options: [[7, 'nach 7 Tagen'], [14, 'nach 14 Tagen'], [30, 'nach 30 Tagen'], [0, 'nie']] },
+    act('Sicherungen Backup', 'Sicherungen …', backupsDlg),
+    { section: 'KI' },
+    act('KI Ollama OpenRouter Modell Anbieter', 'KI-Einstellungen …', aiDlg),
+    { section: 'Datenschutz' },
+    { name: 'favicons', label: 'Seiten-Icons laden (Netzwerk)', type: 'checkbox', value: s.favicons },
+  ], { ok: 'Speichern', search: true }).then(async (v) => {
     if (!v) return
-    Object.assign(s, { theme: v.theme, accent: v.accent, pitch: v.pitch, view: v.view, font: v.font, discover: v.discover, favicons: v.favicons, hidden: v.hidden.split(',').map((x) => x.trim()).filter(Boolean) })
-    s.pagebar.exclude = v.pbExclude.trim()
+    Object.assign(s, { theme: v.theme, accent: v.accent, pitch: v.pitch, view: v.view, font: v.font, discover: v.discover, favicons: v.favicons, newtabBar: v.newtabBar, openInNewTab: v.openInNewTab, confirmDelete: v.confirmDelete, hidden: v.hidden.split(',').map((x) => x.trim()).filter(Boolean) })
+    pb.exclude = v.pbExclude.trim()
+    pb.quick = Number.isFinite(v.quick) ? Math.min(20, Math.max(0, Math.round(v.quick))) : 8
+    s.pomo = { work: Math.max(1, Math.round(v.pomoWork) || 25), brk: Math.max(1, Math.round(v.pomoBrk) || 5) }
+    s.backup.nagDays = [0, 7, 14, 30].includes(Number(v.nagDays)) ? Number(v.nagDays) : 14
     Object.assign(bg, { type: v.bgType, preset: v.preset, c1: v.c1, c2: v.c2, intensity: v.intensity, grain: v.grain, parallax: v.parallax })
-    await persist(); await applyLook(); render()
+    await persist(); await applyLook(); syncNewtabBar(); render()
   })
 }
 async function barsDlg() {
@@ -728,7 +798,7 @@ function renderNag() {
   $('nag').replaceChildren(...(backupNagDue(b, Date.now()) ? [h('div', { class: 'nag' },
     h('span', {}, b.lastExport ? `Letzte Sicherungsdatei vom ${new Date(b.lastExport).toLocaleDateString('de-DE')}. ` : 'Noch keine Sicherungsdatei außerhalb des Browsers. ', 'Geht das Profil verloren, sind sonst auch die Sicherungen weg.'),
     h('button', { class: 'primary', onclick: exportBackup }, 'Jetzt exportieren'),
-    h('button', { title: '14 Tage nicht mehr zeigen', onclick: async () => { b.nagUntil = Date.now() + NAG_MS; await persist(); renderNag() } }, 'Später'))] : []))
+    h('button', { title: 'Hinweis 14 Tage nicht mehr zeigen', onclick: async () => { b.nagUntil = Date.now() + NAG_MS; await persist(); renderNag() } }, 'Später'))] : []))
 }
 async function seedDlg() {
   let folders
@@ -742,6 +812,13 @@ async function seedDlg() {
 }
 
 /* ---------- Start ---------- */
+// Leiste im Neuen Tab: einmal einbinden, danach nur ein-/ausblenden (Optionen: Leiste).
+let barMounted = false
+function syncNewtabBar() {
+  const on = S.settings.newtabBar !== false
+  pikabar.hidden = !on
+  if (on && !barMounted) { barMounted = true; PikaBar.mount(pikabar) }
+}
 function render() { renderHead(); renderNag(); renderPinned(); renderTags(); renderWidgets(); renderBars(); renderBoard() }
 // Andere Schreiber (Hintergrund: Erinnerung erledigt, Pomodoro-Phase, Sitzung; Leiste: Live-Ordner): neu laden,
 // sonst überschreibt persist() deren Stand. Bei offenem Dialog oder Ziehen nur deren Felder übernehmen (absorb).
@@ -758,7 +835,7 @@ B.storage.onChanged.addListener(async (ch, area) => {
   render()
   histItems = await loadItems()
   renderBars(); renderResume(); if (S.settings.discover) renderBoard()
-  PikaBar.mount(pikabar)
+  syncNewtabBar()
   if (location.hash === '#ai') aiDlg()
   for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved']) B.bookmarks[ev].addListener(reloadSoon)
 })()

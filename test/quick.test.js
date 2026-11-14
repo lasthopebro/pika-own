@@ -47,3 +47,13 @@ test('backupNagDue: nie exportiert, kürzlich exportiert, geschlossen', () => {
   assert.equal(backupNagDue({ lastExport: now - 864e5 }, now), false)
   assert.equal(backupNagDue({ lastExport: 0, nagUntil: now + NAG_MS }, now), false)
 })
+
+
+test('backupNagDue: Abstand 7/14/30 Tage oder nie', () => {
+  const now = 1e12, D = 864e5
+  const at = (days, nagDays) => backupNagDue({ lastExport: now - days * D, nagDays }, now)
+  assert.equal(at(8, 7), true); assert.equal(at(6, 7), false)
+  assert.equal(at(10, 14), false); assert.equal(at(15, 14), true); assert.equal(at(15, undefined), true) // alter Stand: 14
+  assert.equal(at(20, 30), false); assert.equal(at(31, 30), true)
+  assert.equal(backupNagDue({ lastExport: 0, nagDays: 0 }, now), false) // nie, auch ohne Export
+})
