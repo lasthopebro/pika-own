@@ -21,6 +21,7 @@ Eigener Code, clean-room: Vorbild ist nur Aussehen und Verhalten, kein fremder C
 - **Auf Live-Ordner ziehen:** Einen Link auf einen Live-Ordner in der Leiste ziehen ordnet ihn zu. Im Ordner-Menü: „Als Tab-Gruppe öffnen“ (Chromium/Brave, Firefox ab 139).
 - **Pomodoro:** ▣ → Timer → „Pomodoro“ ankreuzen. Arbeit und Pause wechseln sich ab, die Benachrichtigung kommt auch bei geschlossenem Neuen Tab.
 - **Sicherungsdatei:** Nach 14 Tagen ohne Export erinnert ein Hinweis an eine Kopie außerhalb des Browsers („Später“ = 14 Tage Ruhe).
+- **Sicherungsordner (Chromium/Brave):** Einstellungen → „Ordner wählen“; täglich eine Datei `pika-<gerät>-<Datum>.json`, die neuesten 5 bleiben, fremde Dateien nie angefasst, kein API-Schlüssel darin. Nach einem Browserneustart einmal „Zugriff erneuern“ klicken. Auf einem frischen Profil holt die Karte „Sicherung wiederherstellen“ alles aus dem Ordner oder einer Datei zurück. In Firefox gibt es nur den Datei-Export.
 - **Seitenleiste:** Ansicht „Live-Ordner“ zeigt dieselbe Leiste senkrecht.
 
 ## Symbole, Menüs, Einstellungen (v0.6)

@@ -3,6 +3,12 @@
 ## Unveröffentlicht
 - Berechtigung `topSites` entfernt (ungenutzt).
 
+## 0.9.0
+- **Sicherungsordner (Chromium/Brave):** Einstellungen → Sicherungsordner → „Ordner wählen“. Der erste Neue Tab des Tages schreibt `pika-<gerät>-<JJJJMMTT>.json` dorthin und behält die neuesten 5 eigenen Dateien; fremde Dateien bleiben unberührt. Nach einem Browserneustart fragt der Browser den Zugriff erneut ab: Hinweis „Zugriff erneuern“, ein Klick. Die Datei enthält den OpenRouter-Schlüssel nicht. Firefox: Abschnitt unsichtbar, Datei-Export bleibt.
+- **Karte „Sicherung wiederherstellen“** bei frischem Profil (höchstens 3 Lesezeichen, nie exportiert, keine Widgets/Tags): „Aus Sicherungsordner“ (Chromium) oder „Datei wählen“, mit Bestätigung; ungültige Dateien werden abgelehnt. Vorhandene Lesezeichen werden nie gelöscht.
+- Der Hinweis auf eine Sicherungsdatei schweigt, solange der Ordner täglich beschrieben wird.
+- Keine neue Berechtigung, keine Abhängigkeit. Neu: `lib/backup-plan.js`, `lib/backup-folder.js` mit Tests; Browser-Test `backup`.
+
 ## 0.8.0
 - Neue Widgets (Mehr → Widget hinzufügen): **Notiz** (speichert 0,5 s nach der letzten Eingabe), **Todo** (Enter fügt hinzu, Häkchen, Löschen, Fälligkeit optional; überfällige oben und markiert, erledigte unten) und **Fotorahmen** (bis 6 `https:`-Adressen im Wechsel, Einpassen/Füllen; es werden nur Adressen gespeichert, ein nicht ladbares Bild wird übersprungen).
 - Todo-Benachrichtigung zur Fälligkeit kommt aus dem Hintergrund (Alarm `todo|<Widget>|<Punkt>`), auch ohne offenen Neuen Tab: genau eine je Punkt, nach einem Browserstart werden Alarme neu gestellt und Überfälliges nachgeholt. Höchstens die nächsten 100 Punkte werden geplant.

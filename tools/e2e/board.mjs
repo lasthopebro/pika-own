@@ -75,7 +75,7 @@ flow('board', async ({ ctx, id, ok, msg, newtab, seed, until, poll, MOCK }) => {
   // Einstellungen: Abschnitte, Suche mit /
   const pbOn0 = await page.evaluate(async () => (await (await import('./lib/store.js')).load()).settings.pagebar.on)
   await page.locator('#top button[aria-label="Einstellungen"]').click(); await page.waitForSelector('dialog .sec')
-  ok((await page.locator('dialog .sec').count()) === 8, 'Einstellungen in 8 Abschnitte gegliedert')
+  ok((await page.locator('dialog .sec').count()) === 9, 'Einstellungen in 9 Abschnitte gegliedert (mit Sicherungsordner)')
   await page.locator('dialog h3').click(); await page.keyboard.press('/'); await page.keyboard.type('pomo')
   ok(await until(page, () => document.querySelectorAll('dialog .sec:not([hidden])').length === 1), 'Suche: ein Abschnitt bleibt sichtbar')
   ok((await page.locator('dialog .row:visible').count()) === 2 && (await page.locator('dialog .sec:visible').count()) === 1, 'Suche „pomo“ zeigt nur die Pomodoro-Optionen und ihren Abschnitt')
