@@ -205,7 +205,7 @@ function renderWidgets() {
 }
 // Abgleich mit dem gespeicherten Stand (auch gelöschte Felder), damit persist() ein Widget nie zurückdreht.
 const sync = (local, saved) => { for (const k of Object.keys(local)) if (!(k in saved)) delete local[k]; return Object.assign(local, saved) }
-const dropWidget = async (id) => { await removeWidget(id, remember); for (const x of S.workspaces) x.widgets = x.widgets.filter((y) => y?.id !== id); renderWidgets() }
+const dropWidget = async (id) => { await removeWidget(id, remember); for (const x of S.workspaces) x.widgets = (x.widgets || []).filter((y) => y?.id !== id); renderWidgets() }
 const removeMenu = (w) => (e) => { e.preventDefault(); menu(e, [{ label: 'Widget entfernen', fn: () => dropWidget(w?.id) }]) }
 const errorCard = (w, e) => h('div', { class: 'widget widget-error', oncontextmenu: removeMenu(w) }, h('div', { class: 'wtitle' }, 'Widget-Fehler'), h('div', { class: 'muted' }, `${w?.type}: ${e?.message || e}`), h('button', { onclick: () => dropWidget(w?.id) }, 'Entfernen'))
 function widgetEl(w) {
@@ -232,7 +232,7 @@ async function addWidget() {
   const made = def.make ? def.make(v, d) : { ...d, ...v } // make darf einen Fehlertext liefern
   if (typeof made === 'string') return toast(made)
   const w = { id: crypto.randomUUID(), type: t.type, ...made }
-  await storeAddWidget(ws().id, w, remember); ws().widgets.push(w); renderWidgets()
+  await storeAddWidget(ws().id, w, remember); (ws().widgets ||= []).push(w); renderWidgets()
 }
 
 /* ---------- Board ---------- */

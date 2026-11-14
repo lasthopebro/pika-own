@@ -58,3 +58,12 @@ test('patchWidget ändert nur das eine Widget und behält fremde Felder', async 
   assert.equal(seen, 3); assert.equal(mem.pika.workspaces[0].widgets.length, 3)
   await removeWidget('c'); assert.deepEqual(mem.pika.workspaces[0].widgets.map((w) => w.id), ['a', 'b'])
 })
+
+test('addWidget/removeWidget: Workspace ohne widgets, null-Eintrag', async () => {
+  const { addWidget, removeWidget, patchWidget } = await import('../lib/store.js')
+  mem.pika = { schema: SCHEMA, workspaces: [{ id: 'w1', name: 'A' }] }
+  await addWidget('w1', { id: 'n', type: 'counter', n: 0 })
+  mem.pika.workspaces[0].widgets.unshift(null)
+  assert.equal((await patchWidget('n', (w) => { w.n = 1 })).n, 1)
+  await removeWidget('n'); assert.deepEqual(mem.pika.workspaces[0].widgets, [null])
+})

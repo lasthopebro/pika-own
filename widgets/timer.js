@@ -21,10 +21,9 @@ export default {
     }
     tick(show)
     const set = async (fn) => {
-      const x = await patch(fn)
+      // Alarm in der Sperre aus dem gespeicherten Stand: create ersetzt einen gleichnamigen Alarm, so gewinnt immer der zuletzt gespeicherte Stand.
+      const x = await patch((y) => { fn(y); if (y.until) B.alarms.create('timer|' + w.id, { when: y.until }); else B.alarms.clear('timer|' + w.id) })
       if (!x) return
-      await B.alarms.clear('timer|' + w.id)
-      if (x.until) B.alarms.create('timer|' + w.id, { when: x.until })
       show()
     }
     box.append(
