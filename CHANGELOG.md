@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.7.0
+- Widget-Fundament (keine sichtbare Änderung): jeder Widget-Typ liegt in einer Datei `widgets/<typ>.js` mit festem Vertrag, `widgets/index.js` ist die einzige Liste; Hinzufügen-Dialog, Titel und Darstellung kommen nur daraus.
+- Widgets speichern über `patchWidget`/`addWidget`/`removeWidget` (`lib/store.js`) unter der Speichersperre: zwei offene Neue Tabs oder der Pomodoro-Wechsel im Hintergrund überschreiben einander nicht mehr (Zähler, Textbausteine).
+- Ein Widget mit beschädigten Daten oder unbekanntem Typ zeigt eine Fehlerkarte mit „Entfernen“; Board und andere Widgets bleiben bedienbar.
+- Prüfungen: Vertragstest über alle Widgets, Browser-Test in fünf unabhängigen Abläufen (`tools/e2e/`), Berechtigungs-Wächter (`docs/BERECHTIGUNGEN.md`, `tools/check-permissions.mjs`) in der CI. Keine neue Berechtigung, Datenformat der Widgets unverändert.
+
 ## 0.6.0
 - Eigenes Programmsymbol (16/32/48/128 px) und einheitlicher Symbolsatz statt gemischter Unicode-Zeichen; alle Symbol-Knöpfe haben einen Namen für Screenreader.
 - Ruhiger Kopf: sechs Knöpfe plus „Mehr“-Menü (Workspace, Widget, Sitzungen).

@@ -25,5 +25,5 @@ Regeln für jeden Task: höchstens 2 Dateien und etwa 80 geänderte Zeilen; am E
 
 ## 4. Abschluss
 
-- [ ] 4.1 [günstig] README-Abschnitt „Eigenes Widget bauen“ (Vertrag, eine Datei, ein Eintrag, Vertragstest) und `CHANGELOG.md` (0.7.0, Version in `manifest.json`/`package.json`). Prüfen: `npm run lint`.
+- [x] 4.1 [günstig] README-Abschnitt „Eigenes Widget bauen“ (Vertrag, eine Datei, ein Eintrag, Vertragstest) und `CHANGELOG.md` (0.7.0, Version in `manifest.json`/`package.json`). Prüfen: `npm run lint`.
 - [ ] 4.2 [stark] Review durch getrennten Prüfer (Speicher, Fehler-Isolation), CI grün, `openspec validate v07-widget-fundament`, PR auf „Ready“.
