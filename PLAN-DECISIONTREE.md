@@ -30,7 +30,7 @@ N0 START
      je Feature genau eine Wahl: passende offene Referenz -> "adaptieren"; sonst "selbst bauen"
      KI nötig -> Ollama zuerst, OpenRouter zweiter Provider, gleiches Interface
  N5 Seed (privat)                       -> data/seed.json (nicht im Repo)
-     Lesezeichen aller Browser dedupliziert; Ordner nach Vorlage fmhy aus Firefox-Profil "555555555555" (= Profiles/MFgXhOmb.Profil 1)
+     Lesezeichen aller Browser dedupliziert; Ordner nach Vorlage fmhy aus einem Firefox-Profil (Umgebungsvariable PIKA_SEED_TEMPLATE)
      Verlauf -> Top-Domains + Unterseiten für Schnellwahl (Kontextmenü je Domain)
  N6 BAU nur nach Kommando "erstelle ein erstes echtes laufendes repo"
      Gerüst MV3 -> Board -> Schnellwahl -> eigene Seitenleisten-Ansichten -> Tags/Kommentare/Erinnerungen

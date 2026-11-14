@@ -1,0 +1,182 @@
+[
+ {
+  "path": [
+   "Lernen"
+  ],
+  "items": [
+   {
+    "t": "Lernen Seite 1",
+    "u": "https://example.org/lernen/1"
+   },
+   {
+    "t": "Lernen Seite 2",
+    "u": "https://example.org/lernen/2"
+   }
+  ]
+ },
+ {
+  "path": [
+   "Werkzeuge"
+  ],
+  "items": [
+   {
+    "t": "Werkzeuge Seite 1",
+    "u": "https://example.org/werkzeuge/1"
+   },
+   {
+    "t": "Werkzeuge Seite 2",
+    "u": "https://example.org/werkzeuge/2"
+   }
+  ]
+ },
+ {
+  "path": [
+   "Nachrichten"
+  ],
+  "items": [
+   {
+    "t": "Nachrichten Seite 1",
+    "u": "https://example.org/nachrichten/1"
+   },
+   {
+    "t": "Nachrichten Seite 2",
+    "u": "https://example.org/nachrichten/2"
+   }
+  ]
+ },
+ {
+  "path": [
+   "Musik"
+  ],
+  "items": [
+   {
+    "t": "Musik Seite 1",
+    "u": "https://example.org/musik/1"
+   },
+   {
+    "t": "Musik Seite 2",
+    "u": "https://example.org/musik/2"
+   }
+  ]
+ },
+ {
+  "path": [
+   "Reisen"
+  ],
+  "items": [
+   {
+    "t": "Reisen Seite 1",
+    "u": "https://example.org/reisen/1"
+   },
+   {
+    "t": "Reisen Seite 2",
+    "u": "https://example.org/reisen/2"
+   }
+  ]
+ },
+ {
+  "path": [
+   "Kochen"
+  ],
+  "items": [
+   {
+    "t": "Kochen Seite 1",
+    "u": "https://example.org/kochen/1"
+   },
+   {
+    "t": "Kochen Seite 2",
+    "u": "https://example.org/kochen/2"
+   }
+  ]
+ },
+ {
+  "path": [
+   "Sport"
+  ],
+  "items": [
+   {
+    "t": "Sport Seite 1",
+    "u": "https://example.org/sport/1"
+   },
+   {
+    "t": "Sport Seite 2",
+    "u": "https://example.org/sport/2"
+   }
+  ]
+ },
+ {
+  "path": [
+   "Finanzen"
+  ],
+  "items": [
+   {
+    "t": "Finanzen Seite 1",
+    "u": "https://example.org/finanzen/1"
+   },
+   {
+    "t": "Finanzen Seite 2",
+    "u": "https://example.org/finanzen/2"
+   }
+  ]
+ },
+ {
+  "path": [
+   "Gesundheit"
+  ],
+  "items": [
+   {
+    "t": "Gesundheit Seite 1",
+    "u": "https://example.org/gesundheit/1"
+   },
+   {
+    "t": "Gesundheit Seite 2",
+    "u": "https://example.org/gesundheit/2"
+   }
+  ]
+ },
+ {
+  "path": [
+   "Aufgaben"
+  ],
+  "items": [
+   {
+    "t": "Aufgaben Seite 1",
+    "u": "https://example.org/aufgaben/1"
+   },
+   {
+    "t": "Aufgaben Seite 2",
+    "u": "https://example.org/aufgaben/2"
+   }
+  ]
+ },
+ {
+  "path": [
+   "Lesen"
+  ],
+  "items": [
+   {
+    "t": "Lesen Seite 1",
+    "u": "https://example.org/lesen/1"
+   },
+   {
+    "t": "Lesen Seite 2",
+    "u": "https://example.org/lesen/2"
+   }
+  ]
+ },
+ {
+  "path": [
+   "Spiele"
+  ],
+  "items": [
+   {
+    "t": "Spiele Seite 1",
+    "u": "https://example.org/spiele/1"
+   },
+   {
+    "t": "Spiele Seite 2",
+    "u": "https://example.org/spiele/2"
+   }
+  ]
+ }
+]

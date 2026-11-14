@@ -1,5 +1,5 @@
 import { B } from './lib/api.js'
-import { load, save, update } from './lib/store.js'
+import { load, update } from './lib/store.js'
 import { applyTopics, undo as undoLf } from './lib/folders.js'
 import { h, toast, menu, dialog, ask, tile } from './lib/ui.js'
 import { domainOf, groupHistory, renameName, parseAiTopics, score, parseBars, barsToText } from './lib/logic.js'
@@ -674,7 +674,9 @@ async function backupsDlg() {
 }
 // Datei-Kopie außerhalb des Profils; merkt sich das Datum für den Hinweis.
 async function exportBackup() {
-  const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(await makeBackup())], { type: 'application/json' })), download: `pika-own-backup-${new Date().toISOString().slice(0, 10)}.json` })
+  const b = await makeBackup()
+  b.state.settings.ai.orKey = '' // die Datei verlässt den Browser: kein API-Schlüssel darin
+  const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(b)], { type: 'application/json' })), download: `pika-own-backup-${new Date().toISOString().slice(0, 10)}.json` })
   a.click()
   S.settings.backup.lastExport = Date.now(); await persist(); renderNag()
 }

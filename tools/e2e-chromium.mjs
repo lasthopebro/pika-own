@@ -11,7 +11,7 @@ const srv = http.createServer((req, res) => {
     res.setHeader('content-type', 'text/html'); if (req.url === '/csp') res.setHeader('content-security-policy', "default-src 'none'"); res.end(`<title>Seite ${req.url}</title>x`)
   })
 }).listen(11434)
-const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m)
+const ok = (c, m) => { console.log((c ? 'OK   ' : 'FAIL ') + m); if (!c) process.exitCode = 1 }
 const ud = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-'))
 const ctx = await chromium.launchPersistentContext(ud, { channel: 'chromium', headless: true, ignoreDefaultArgs: ['--disable-extensions'], args: ['--disable-features=DisableLoadExtensionCommandLineSwitch', `--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`] })
 const errs = []
@@ -22,7 +22,7 @@ page.on('pageerror', e => errs.push(e.message)); page.on('dialog', d => d.accept
 await page.goto(`chrome-extension://${id}/newtab.html`); await page.waitForTimeout(800)
 await page.evaluate(async (id) => {
   const { importFolders } = await import(`chrome-extension://${id}/lib/seed.js`)
-  await importFolders((await (await fetch(`chrome-extension://${id}/data/seed-folders.json`)).json()).slice(0, 40))
+  await importFolders(await (await fetch(`chrome-extension://${id}/test/fixtures/folders.json`)).json()) // erfundene Daten, läuft auch in CI
 }, id)
 await page.waitForTimeout(1500)
 ok(!(await page.locator('body').innerText()).includes('null'), 'kein "null" im Text')
@@ -40,7 +40,7 @@ await page.locator('#selbar button', { hasText: 'Fertig' }).click()
 // Sicherung + Sitzung + Erinnerung
 const r = await page.evaluate(async (id) => {
   const bk = await import(`chrome-extension://${id}/lib/backup.js`); const ss = await import(`chrome-extension://${id}/lib/sessions.js`); const st = await import(`chrome-extension://${id}/lib/store.js`)
-  const l = await bk.saveBackup(); const S = await st.load(); await ss.saveSession(S, 'T', [{ title: 'a', url: 'http://localhost:11434/a' }]); await st.save(S); const sesBefore = (await st.load()).sessions.length
+  const l = await bk.saveBackup(); await st.update((S) => ss.saveSession(S, 'T', [{ title: 'a', url: 'http://localhost:11434/a' }])); const sesBefore = (await st.load()).sessions.length
   const back = (await bk.listBackups())[0]
   const rr = await bk.restore(back)
   return { sesBefore, backups: l.length, folders: back.folders.length, restoredAdded: rr.added, sessions: (await st.load()).sessions.length }
@@ -142,4 +142,5 @@ const bar2 = await msg(p2, { type: 'getBar', host: '' })
 ok(bar2.folders.some((f) => f.name === 'Projekt' && f.items.length === 3), 'Live-Ordner nach Neustart des Browsers noch da (3 Einträge inkl. gezogenem)')
 await ctx2.close()
 console.log('JS-Fehler:', errs.length ? errs : 'keine')
+if (errs.length) process.exitCode = 1
 srv.close()
