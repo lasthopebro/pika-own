@@ -43,7 +43,7 @@
 - [ ] 4.7 Ansichten Spalten, Galerie (Raster/Liste), Kompakte Zeilen, Zentriert mit großer Uhr; Taste V; Ansicht pro Workspace
   - Stand: teils (Board, Galerie, Kompakt); Zentriert mit großer Uhr fehlt, Ansicht nicht pro Workspace
 - [ ] 4.8 Toolbar-Popup: Suche und „Diesen Tab speichern“ mit Ordnerauswahl
-  - Stand: nicht gebaut (kein Toolbar-Popup); lebt in v06-paritaet-rest 3.4
+  - Stand: entfällt (Entscheidung: kein Toolbar-Popup, „Gespeichert in …“ kommt per Kontextmenü und Benachrichtigung)
 - [x] 4.9 Papierkorb (7 Tage, höchstens 20 Einträge) und Rückgängig; Wiederherstellung bei fehlendem Elternordner in die Lesezeichenleiste
 - [ ] 4.10 Dubletten-Finder mit „Je eines behalten“, Tags und Favoriten übernehmen, Rückgängig
   - Stand: teils (Finder, „Je eines behalten“ mit Papierkorb); Tags/Favoriten übernehmen fehlt
@@ -53,7 +53,7 @@
 - [ ] 4.13 Aussehen: fünf Akzente plus frei, Schriftart Sans/Mono/Serif, Look pro Workspace
   - Stand: teils (Schriftart, freie Akzentfarbe); fünf Vorgaben und Look pro Workspace fehlen
 - [ ] 4.14 Sprachen Deutsch und Englisch (Texte aus einer Datei, unabhängig von der Browsersprache)
-  - Stand: nicht gebaut; lebt in v06-paritaet-rest 6.3
+  - Stand: entfällt (Entscheidung: keine weiteren Sprachen)
 - [ ] 4.15 Prüfen, dass Deinstallation Lesezeichen unberührt lässt und ein Export der Zusatzdaten vorher möglich ist
   - Stand: nicht ausdrücklich geprüft oder dokumentiert
 
