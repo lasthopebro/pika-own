@@ -848,6 +848,8 @@ function settingsDlg() {
     act('Schnellwahl', 'Schnellwahl-Leisten …', barsDlg),
     { section: 'Board' },
     { name: 'view', label: 'Ansicht', type: 'select', value: s.view, options: [['board', 'Board'], ['gallery', 'Galerie'], ['compact', 'Kompakte Zeilen']] },
+    { name: 'galleryMode', label: 'Galerie (Taste V): Darstellung', type: 'select', value: s.galleryMode, options: [['grid', 'Raster'], ['list', 'Liste']] },
+    { name: 'galleryDensity', label: 'Galerie (Taste V): Dichte', type: 'select', value: s.galleryDensity, options: [['s', 'Klein'], ['m', 'Mittel'], ['l', 'Groß']] },
     { name: 'discover', label: 'Spalten „Zuletzt hinzugefügt“ und „Meistbesucht“', type: 'checkbox', value: s.discover },
     { name: 'openInNewTab', label: 'Links im Board im neuen Tab öffnen', type: 'checkbox', value: s.openInNewTab },
     { name: 'confirmDelete', label: 'Löschen einzelner Links bestätigen (aus: mit Rückgängig)', type: 'checkbox', value: s.confirmDelete },
@@ -871,7 +873,7 @@ function settingsDlg() {
     { name: 'favicons', label: 'Seiten-Icons laden (Netzwerk)', type: 'checkbox', value: s.favicons },
   ], { ok: 'Speichern', search: true }).then(async (v) => {
     if (!v) return
-    Object.assign(s, { theme: v.theme, accent: v.accent, pitch: v.pitch, view: v.view, font: v.font, discover: v.discover, favicons: v.favicons, newtabBar: v.newtabBar, openInNewTab: v.openInNewTab, confirmDelete: v.confirmDelete, hidden: v.hidden.split(',').map((x) => x.trim()).filter(Boolean) })
+    Object.assign(s, { theme: v.theme, accent: v.accent, pitch: v.pitch, view: v.view, galleryMode: v.galleryMode, galleryDensity: v.galleryDensity, font: v.font, discover: v.discover, favicons: v.favicons, newtabBar: v.newtabBar, openInNewTab: v.openInNewTab, confirmDelete: v.confirmDelete, hidden: v.hidden.split(',').map((x) => x.trim()).filter(Boolean) })
     pb.exclude = v.pbExclude.trim()
     pb.quick = Number.isFinite(v.quick) ? Math.min(20, Math.max(0, Math.round(v.quick))) : 8
     s.pomo = { work: Math.max(1, Math.round(v.pomoWork) || 25), brk: Math.max(1, Math.round(v.pomoBrk) || 5) }

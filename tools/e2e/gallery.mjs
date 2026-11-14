@@ -116,4 +116,16 @@ flow('gallery', async ({ id, ok, newtab, seed, until, poll }) => {
   await tile('Tools').click(); await poll(async () => (await crumbs()).length === 3)
   await page.evaluate((t) => chrome.bookmarks.removeTree(t), tools)
   ok(await poll(async () => (await crumbs()).join('|') === 'Home|Dev'), 'Ordner gelöscht: Pfad wird auf Home › Dev gekürzt')
+
+  // Einstellungen (Abschnitt Board) setzen dieselben Werte
+  await page.keyboard.press('Escape'); await page.keyboard.press('Escape')
+  await poll(async () => (await inGallery()) === 0)
+  await page.locator('#top button[aria-label="Einstellungen"]').click()
+  const dlg = page.locator('dialog', { has: page.locator('h3', { hasText: 'Einstellungen' }) })
+  await dlg.getByLabel('Galerie (Taste V): Darstellung').selectOption('list'); await dlg.getByLabel('Galerie (Taste V): Dichte').selectOption('l')
+  await dlg.locator('button.primary').click()
+  ok(await poll(async () => (await page.evaluate(async () => { const s = (await chrome.storage.local.get('pika')).pika?.settings; return s?.galleryMode + '|' + s?.galleryDensity })) === 'list|l'), 'Einstellungen: Liste und groß gespeichert')
+  await page.waitForSelector('dialog', { state: 'detached' })
+  await reopen()
+  ok(await until(page, () => document.getElementById('gal').dataset.mode === 'list' && document.getElementById('gal').dataset.d === 'l'), 'Galerie übernimmt die Werte aus den Einstellungen')
 })
