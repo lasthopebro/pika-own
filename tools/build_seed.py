@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data")
 APPDATA, LOCAL = os.environ["APPDATA"], os.environ["LOCALAPPDATA"]
-TEMPLATE = "MFgXhOmb.Profil 1"  # Firefox-Profil "555555555555": Vorlage der Ordnerstruktur
+TEMPLATE = os.environ.get("PIKA_SEED_TEMPLATE", "")  # Ordnername des Firefox-Profils, dessen Ordnerstruktur Vorlage ist (leer = keine)
 SKIP = ("Guest Profile", "System Profile")
 
 

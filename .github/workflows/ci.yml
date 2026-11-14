@@ -1,0 +1,28 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+      - run: npm run lint
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.61.1 && npx playwright install --with-deps chromium
+      # Erweiterung ohne node_modules/.git laden (Chromium lehnt Ordner mit „_“-Namen ab)
+      - run: rsync -a --exclude node_modules --exclude .git --exclude .github ./ "$RUNNER_TEMP/ext/"
+      - run: node tools/e2e-chromium.mjs "$RUNNER_TEMP/ext"

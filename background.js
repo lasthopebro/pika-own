@@ -73,7 +73,11 @@ async function historyItems() {
   if (Date.now() - quickCache.ts > 60e3) quickCache = { ts: Date.now(), items: await loadItems() }
   return quickCache.items
 }
-async function bookmarkBar() {
+// Jeder Tab mit Leiste fragt bei jeder Tab-Änderung an: Baum nur neu lesen, wenn sich Lesezeichen geändert haben.
+let bmCache = null
+for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved']) B.bookmarks[ev].addListener(() => { bmCache = null })
+const bookmarkBar = () => (bmCache ??= readBookmarkBar().catch((e) => { bmCache = null; throw e }))
+async function readBookmarkBar() {
   const [root] = await B.bookmarks.getTree()
   const bar = root.children.find((c) => c.id === '1' || c.id === 'toolbar_____') || root.children[0]
   const links = [], folders = []
@@ -164,7 +168,8 @@ B.alarms.onAlarm.addListener(async (a) => {
   else if (a.name.startsWith('rem|')) await fire(a.name.slice(4))
   else if (a.name.startsWith('timer|')) await timerDone(a.name.slice(6))
 })
-B.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.pika) syncReminders() })
+// Erinnerungs-Wecker nur neu stellen, wenn sich meta (Erinnerungen) geändert hat, nicht bei jedem Klick.
+B.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.pika && JSON.stringify(ch.pika.oldValue?.meta) !== JSON.stringify(ch.pika.newValue?.meta)) syncReminders() })
 B.notifications.onClicked.addListener((id) => { if (/^https?:/.test(id)) B.tabs.create({ url: id }) })
 B.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'save-page') {

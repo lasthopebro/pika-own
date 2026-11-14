@@ -1,6 +1,6 @@
 // Seitenleiste mit eigenen, frei anlegbaren Ansichten (Ordner, Tag, Verlauf-Leisten, Tabs, Suche, Sitzungen, eigene Links).
 import { B } from './lib/api.js'
-import { load, save } from './lib/store.js'
+import { load, update } from './lib/store.js'
 import { h, ask, toast, tile } from './lib/ui.js'
 import { domainOf, groupHistory, score } from './lib/logic.js'
 import { loadItems } from './lib/dials.js'
@@ -97,7 +97,7 @@ async function edit(v) {
     S.views = v ? S.views.map((x) => (x.id === v.id ? nv : x)) : [...S.views, nv]
     cur = nv.id
   }
-  await save(S); toast('Gespeichert'); head(); renderView()
+  await update((cur) => { cur.views = S.views }); toast('Gespeichert'); head(); renderView()
 }
 
 async function boot() {
