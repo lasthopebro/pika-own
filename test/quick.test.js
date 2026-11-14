@@ -16,6 +16,12 @@ test('absorb: übernimmt fremde Sitzungen, Timer und erledigte Erinnerungen, beh
   assert.deepEqual([S.workspaces[0].widgets[0].until, S.workspaces[0].widgets[0].phase], [777, 'break'])
 })
 
+test('absorb: null-Einträge und Workspace ohne widgets stören nicht', () => {
+  const S = { settings: { pagebar: {} }, meta: {}, workspaces: [{ widgets: [null, { id: 't', type: 'timer', until: 1 }] }, {}] }
+  absorb(S, { workspaces: [{ widgets: [null, { id: 't', type: 'timer', until: 9 }] }] }, 0)
+  assert.equal(S.workspaces[0].widgets[1].until, 9)
+})
+
 test('urlsFromText: Text mit Adressen, Dubletten einmal', () => {
   assert.deepEqual(urlsFromText('Schau https://a.de/x und http://b.org\nhttps://a.de/x'), ['https://a.de/x', 'http://b.org/'])
 })

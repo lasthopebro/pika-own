@@ -30,6 +30,23 @@ Eigener Code, clean-room: Vorbild ist nur Aussehen und Verhalten, kein fremder C
 - **Tastenkürzel:** `?` zeigt alle. Im Browser änderbar (Alt+Umschalt+S Seite speichern, Alt+Umschalt+B Leiste ein-/ausklappen, Alt+Umschalt+P/L Seitenleiste): Chrome/Brave/Edge `chrome://extensions/shortcuts`, Firefox `about:addons` → Zahnrad → Tastenkürzel verwalten.
 - **Einstellungen:** Abschnitte (Aussehen, Leiste, Schnellwahl, Board, Erinnerungen & Timer, Sicherung, KI, Datenschutz) mit Suche (Taste `/`). Neu: Leiste im Neuen Tab an/aus, Zahl der Schnellwahl-Einträge, Links im neuen Tab, Löschen bestätigen (aus = mit Rückgängig, Ordner immer mit Nachfrage), Sicherungs-Hinweis nach 7/14/30 Tagen oder nie, Pomodoro-Standardlängen, Emoji-Raster für Live-Ordner und Lesezeichen.
 
+## Eigenes Widget bauen (v0.7)
+Ein Widget ist eine Datei `widgets/<typ>.js` mit einem Standard-Export und ein Eintrag in `widgets/index.js`; `newtab.js` bleibt unberührt.
+```js
+export default {
+  type: 'counter', label: 'Zähler',                          // Schlüssel in der Liste, Name im Dialog
+  defaults: (S) => ({ label: '', n: 0 }),                    // Startwerte, JSON-fähig (S = Zustand, z. B. für Einstellungen)
+  fields: (d) => [{ name: 'label', label: 'Name', value: d.label }],   // Formular wie ask() in lib/ui.js
+  title: (w) => w.label || 'Zähler',                         // Titel, nie leer
+  make: (v, d) => ({ ...d, ...v }),                          // optional: Formularwerte -> Widget; ein Text als Rückgabe ist eine Fehlermeldung
+  render(w, { big, sub, box, patch, tick, h, toast, ask, icon, redraw }) { /* DOM füllen */ },
+}
+```
+- **Schreiben nur über `patch(fn)`:** `await patch((x) => { x.n += 1 })` ändert unter der Speichersperre genau dieses Widget und gleicht `w` mit dem gespeicherten Stand ab. Nie `persist()` oder den ganzen Zustand anfassen.
+- **`tick(fn)`** läuft sofort und dann jede Sekunde; wirft `render` oder `tick`, ersetzt eine Fehlerkarte nur dieses Widget.
+- **Test:** `npm test` prüft jedes registrierte Widget (Pflichtfelder, JSON-fähige Standardwerte, Titel, Zeichnen mit Standard- und leeren Daten). Die Optik prüft `tools/e2e/widgets.mjs`.
+- Keine neue Berechtigung ohne Eintrag in `docs/BERECHTIGUNGEN.md` (die CI prüft das).
+
 ## Datenschutz
 Alles bleibt im Browser (`storage.local`). Nichts wird an Dritte gesendet, außer du schaltest OpenRouter ein: dann gehen nur Tab-Titel und Domains an OpenRouter. Mit Ollama bleibt es auf deinem Rechner. Kein Konto, kein Lizenzschlüssel, keine Telemetrie.
 
@@ -57,4 +74,4 @@ Lizenz: MIT (`LICENSE`), Änderungen: `CHANGELOG.md`.
 Einstellungen → „Seed importieren“ legt die Ordner und fehlende Lesezeichen an, `seed-dials.json` füttert die Schnellwahl zusätzlich zum Verlauf.
 
 ## Tests
-`npm test` (Logik), `npm run lint` (web-ext). Browser-Test: `tools/e2e-chromium.mjs <Erweiterungsordner ohne Leerzeichen im Pfad>` mit installiertem Playwright.
+`npm test` (Logik), `npm run lint` (web-ext). Browser-Test: `tools/e2e-chromium.mjs <Erweiterungsordner ohne Leerzeichen im Pfad>` (Playwright) startet die Abläufe `tools/e2e/{board,bar,ai,capture,widgets}.mjs` einzeln mit frischem Profil; einer allein: `node tools/e2e/widgets.mjs <Ordner>`. Umgebung: `PIKA_MOCK_PORT` (Port des Ollama-Ersatzes, Standard 11434), `PIKA_CHROMIUM` (eigene Chromium-Datei). Berechtigungen: `node tools/check-permissions.mjs`.

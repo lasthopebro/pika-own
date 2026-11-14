@@ -13,7 +13,7 @@ const note = (id, message) => B.notifications.create(id, { type: 'basic', iconUr
 // Timer/Pomodoro: der Wecker läuft hier, damit er auch ohne offenen Neuen Tab klingelt.
 async function timerDone(id) {
   await update((S) => {
-    const w = S.workspaces.flatMap((x) => x.widgets).find((x) => x.id === id)
+    const w = S.workspaces.flatMap((x) => x.widgets || []).find((x) => x?.id === id)
     if (!w?.until) return
     if (w.until > Date.now() + 1000) return void B.alarms.create('timer|' + id, { when: w.until }) // veralteter/zu früher Alarm
     note('timer|' + id, timerNext(w, Date.now()))
@@ -31,8 +31,8 @@ async function saveTabsFolder() {
 }
 // Alarme überleben einen Browser-Neustart nicht sicher: laufende Timer neu stellen, abgelaufene nachholen.
 async function syncTimers() {
-  for (const w of (await load()).workspaces.flatMap((x) => x.widgets)) {
-    if (w.type !== 'timer' || !w.until) continue
+  for (const w of (await load()).workspaces.flatMap((x) => x.widgets || [])) {
+    if (w?.type !== 'timer' || !w.until) continue
     if (w.until <= Date.now()) await timerDone(w.id); else B.alarms.create('timer|' + w.id, { when: w.until })
   }
 }

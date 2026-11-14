@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "pika-own",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Eigenes Lesezeichen-Board mit Schnellwahl aus dem Verlauf, eigenen Seitenleisten-Ansichten und KI-Tab-Sortierung (Ollama/OpenRouter).",
   "icons": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png" },
   "permissions": ["bookmarks", "history", "topSites", "storage", "unlimitedStorage", "tabs", "alarms", "notifications", "contextMenus", "sidePanel", "scripting", "tabGroups"],
