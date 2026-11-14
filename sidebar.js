@@ -1,17 +1,17 @@
 // Seitenleiste mit eigenen, frei anlegbaren Ansichten (Ordner, Tag, Verlauf-Leisten, Tabs, Suche, Sitzungen, eigene Links).
 import { B } from './lib/api.js'
-import { load, save } from './lib/store.js'
+import { load, update } from './lib/store.js'
 import { h, ask, toast, tile } from './lib/ui.js'
 import { domainOf, groupHistory, score } from './lib/logic.js'
 import { loadItems } from './lib/dials.js'
 import { openSession } from './lib/sessions.js'
 
 const DEFAULT_VIEWS = [
-  { id: 'd-today', name: 'Heute', type: 'today' }, { id: 'd-top', name: 'Meistbesucht', type: 'top' },
+  { id: 'd-lf', name: 'Live-Ordner', type: 'livefolders' }, { id: 'd-today', name: 'Heute', type: 'today' }, { id: 'd-top', name: 'Meistbesucht', type: 'top' },
   { id: 'd-tabs', name: 'Tabs', type: 'tabs' }, { id: 'd-search', name: 'Suche', type: 'search' }, { id: 'd-ses', name: 'Sitzungen', type: 'sessions' },
 ]
-const TYPES = [['folder', 'Lesezeichen-Ordner'], ['tag', 'Tag'], ['top', 'Meistbesucht (Verlauf)'], ['recent', 'Zuletzt besucht (Verlauf)'], ['today', 'Heute besucht (Verlauf)'], ['tabs', 'Offene Tabs'], ['search', 'Lesezeichen-Suche'], ['sessions', 'Sitzungen'], ['links', 'Eigene Links']]
-let S, T, cur = localStorage.getItem('pika-view') || ''
+const TYPES = [['folder', 'Lesezeichen-Ordner'], ['tag', 'Tag'], ['top', 'Meistbesucht (Verlauf)'], ['recent', 'Zuletzt besucht (Verlauf)'], ['today', 'Heute besucht (Verlauf)'], ['tabs', 'Offene Tabs'], ['search', 'Lesezeichen-Suche'], ['sessions', 'Sitzungen'], ['links', 'Eigene Links'], ['livefolders', 'Live-Ordner und Leiste']]
+let S, T, cur = localStorage.getItem('pika-view') || '', lfEl = null
 const $ = (id) => document.getElementById(id)
 const views = () => (S.views.length ? S.views : DEFAULT_VIEWS)
 const flat = (n) => (n.url ? [n] : (n.children || []).flatMap(flat))
@@ -33,7 +33,11 @@ async function renderView() {
   cur = v.id
   const body = $('body')
   body.replaceChildren()
-  if (v.type === 'folder') {
+  if (v.type === 'livefolders') {
+    // Dieselbe Leiste wie im Neuen Tab, senkrecht; einmal einbinden, sie lädt sich bei Änderungen selbst neu.
+    if (!lfEl) { lfEl = h('div'); globalThis.PikaBar.mount(lfEl, { vertical: true }) }
+    body.append(lfEl)
+  } else if (v.type === 'folder') {
     const f = (function find(n) { return n.id === v.arg ? n : (n.children || []).map(find).find(Boolean) })(T[0])
     const rows = f ? nodeList(f) : []
     body.append(...(rows.length ? rows : [muted(f ? 'Ordner ist leer' : 'Ordner nicht gefunden')]))
@@ -93,7 +97,7 @@ async function edit(v) {
     S.views = v ? S.views.map((x) => (x.id === v.id ? nv : x)) : [...S.views, nv]
     cur = nv.id
   }
-  await save(S); toast('Gespeichert'); head(); renderView()
+  await update((cur) => { cur.views = S.views }); toast('Gespeichert'); head(); renderView()
 }
 
 async function boot() {

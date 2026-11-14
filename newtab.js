@@ -1,5 +1,5 @@
 import { B } from './lib/api.js'
-import { load, save, update } from './lib/store.js'
+import { load, update } from './lib/store.js'
 import { applyTopics, undo as undoLf } from './lib/folders.js'
 import { h, toast, menu, dialog, ask, tile } from './lib/ui.js'
 import { domainOf, groupHistory, renameName, parseAiTopics, score, parseBars, barsToText } from './lib/logic.js'
@@ -11,13 +11,15 @@ import * as ai from './lib/ai.js'
 import * as ollama from './lib/ollama.js'
 import { resumeCards } from './lib/resume.js'
 import { trashAdd, restoreParent, findDupes, discovery } from './lib/board.js'
+import { urlsFromText, timerLeft, backupNagDue, NAG_MS, absorb } from './lib/quick.js'
 
 let S, T, histItems = [], filterTag = '', selMode = false, focus = null, drag = null, importing = false
+const own = new Set() // selbst geschriebene Stände (JSON), damit deren Änderungsereignis nicht neu lädt
 const byId = new Map()
 const sel = new Set()
 const $ = (id) => document.getElementById(id)
-// lf/snapshots schreiben auch Hintergrund und Leiste: nie mit altem Stand überschreiben
-const persist = () => update((cur) => { Object.assign(cur, S, { lf: cur.lf, snapshots: cur.snapshots }); S.lf = cur.lf; S.snapshots = cur.snapshots })
+// lf/snapshots schreiben auch Hintergrund und Leiste: nie mit altem Stand überschreiben. own = zuletzt selbst geschrieben.
+const persist = () => update((cur) => { Object.assign(cur, S, { lf: cur.lf, snapshots: cur.snapshots }); S.lf = cur.lf; S.snapshots = cur.snapshots; if (own.size > 20) own.clear(); own.add(JSON.stringify(cur)) })
 const ws = () => S.workspaces.find((w) => w.id === S.currentWs) || S.workspaces[0]
 const mk = (n) => n.url || 'f:' + n.id
 const mt = (k) => (S.meta[k] ||= {})
@@ -101,7 +103,7 @@ function renderHead() {
     btn('＋', 'Workspace anlegen', newWs), btn('✎', 'Workspace bearbeiten', editWs),
     h('button', { class: 'search', onclick: palette }, 'Suchen … (F)'),
     btn('☑', 'Auswahlmodus (S)', toggleSel), btn('▦', 'Board / Galerie (V)', toggleView),
-    btn('⏱', 'Tab-Sitzungen', sessionsDlg), btn('✨', 'KI', aiDlg), btn('▣', 'Widget hinzufügen', addWidget), btn('⚙', 'Einstellungen', settingsDlg))
+    btn('⤓', 'Alle Tabs als Ordner speichern', saveTabsFolder), btn('⏱', 'Tab-Sitzungen', sessionsDlg), btn('✨', 'KI', aiDlg), btn('▣', 'Widget hinzufügen', addWidget), btn('⚙', 'Einstellungen', settingsDlg))
 }
 function renderPinned() {
   $('pinned').replaceChildren(...ws().pinned.map((p) => h('a', {
@@ -183,7 +185,7 @@ function renderWidgets() {
 }
 function widgetEl(w) {
   const big = h('div', { class: 'wbig' }), sub = h('div', { class: 'muted' })
-  const title = { clock: w.tz || 'Lokale Zeit', countdown: w.label || 'Countdown', timer: 'Timer ' + w.minutes + ' min', counter: w.label || 'Zähler', snippets: 'Textbausteine' }[w.type]
+  const title = { clock: w.tz || 'Lokale Zeit', countdown: w.label || 'Countdown', timer: w.pomo ? `Pomodoro ${w.minutes}/${w.brk || 5} min` : 'Timer ' + w.minutes + ' min', counter: w.label || 'Zähler', snippets: 'Textbausteine' }[w.type]
   const box = h('div', { class: 'widget', oncontextmenu: (e) => { e.preventDefault(); menu(e, [{ label: 'Widget entfernen', fn: async () => { ws().widgets = ws().widgets.filter((x) => x.id !== w.id); await persist(); renderWidgets() } }]) } }, h('div', { class: 'wtitle' }, title), big, sub)
   if (w.type === 'clock') {
     ticks.push(() => {
@@ -200,11 +202,21 @@ function widgetEl(w) {
       sub.textContent = new Date(w.to).toLocaleString('de-DE')
     })
   } else if (w.type === 'timer') {
-    let left = w.minutes * 60, run = false
-    const show = () => { big.textContent = `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}` }
-    show()
-    ticks.push(() => { if (run && left > 0 && --left === 0) { run = false; toast('Timer abgelaufen: ' + w.minutes + ' min') } if (run) show() })
-    box.append(h('button', { onclick: () => { run = !run } }, 'Start/Pause'), h('button', { onclick: () => { run = false; left = w.minutes * 60; show() } }, 'Reset'))
+    // Zustand als Zeitstempel: überlebt geschlossene Tabs; der Wecker (Alarm) und die Benachrichtigung laufen im Hintergrund.
+    const show = () => {
+      const l = timerLeft(w, Date.now())
+      big.textContent = `${String(Math.floor(l / 60)).padStart(2, '0')}:${String(l % 60).padStart(2, '0')}`
+      sub.textContent = (w.pomo ? (w.phase === 'break' ? 'Pause' : 'Arbeiten') : '') + (w.until ? '' : ' · angehalten')
+    }
+    show(); ticks.push(show)
+    const set = async (fn) => {
+      fn(); await B.alarms.clear('timer|' + w.id)
+      if (w.until) B.alarms.create('timer|' + w.id, { when: w.until })
+      await persist(); show()
+    }
+    box.append(
+      h('button', { onclick: () => set(() => { const l = timerLeft(w, Date.now()); if (w.until) { w.left = l; delete w.until } else { w.until = Date.now() + (l || w.minutes * 60) * 1000; delete w.left } }) }, 'Start/Pause'),
+      h('button', { onclick: () => set(() => { delete w.until; delete w.left; w.phase = 'work' }) }, 'Reset'))
   } else if (w.type === 'counter') {
     const upd = () => { big.textContent = w.n }
     upd()
@@ -222,7 +234,7 @@ async function addWidget() {
   const F = {
     clock: [{ name: 'tz', label: 'Zeitzone (leer = lokal)', placeholder: 'Asia/Tokyo' }],
     countdown: [{ name: 'label', label: 'Name' }, { name: 'to', label: 'Ziel', type: 'datetime-local' }],
-    timer: [{ name: 'minutes', label: 'Minuten', type: 'number', value: 25, min: 1 }],
+    timer: [{ name: 'minutes', label: 'Minuten', type: 'number', value: 25, min: 1 }, { name: 'pomo', label: 'Pomodoro (Arbeit und Pause im Wechsel)', type: 'checkbox' }, { name: 'brk', label: 'Pause (Minuten)', type: 'number', value: 5, min: 1 }],
     counter: [{ name: 'label', label: 'Name' }],
     snippets: [{ name: 'items', label: 'Einer pro Zeile', type: 'textarea', rows: 5 }],
   }[t.type]
@@ -231,7 +243,7 @@ async function addWidget() {
   const w = { id: crypto.randomUUID(), type: t.type }
   if (t.type === 'clock') { try { if (v.tz) new Intl.DateTimeFormat('de', { timeZone: v.tz }) } catch { return toast('Unbekannte Zeitzone: ' + v.tz) } w.tz = v.tz.trim() }
   if (t.type === 'countdown') { if (!v.to) return toast('Ziel fehlt'); w.label = v.label; w.to = v.to }
-  if (t.type === 'timer') w.minutes = Math.max(1, v.minutes || 25)
+  if (t.type === 'timer') Object.assign(w, { minutes: Math.max(1, v.minutes || 25), pomo: v.pomo, brk: Math.max(1, v.brk || 5), phase: 'work' })
   if (t.type === 'counter') { w.label = v.label; w.n = 0 }
   if (t.type === 'snippets') w.items = v.items.split('\n').map((x) => x.trim()).filter(Boolean)
   ws().widgets.push(w); await persist(); renderWidgets()
@@ -249,7 +261,7 @@ function itemEl(n) {
     onclick: (e) => { if (selMode) { e.preventDefault(); sel.has(n.id) ? sel.delete(n.id) : sel.add(n.id); a.classList.toggle('sel'); if (cb) cb.checked = sel.has(n.id); renderSelBar() } },
     oncontextmenu: (e) => { e.preventDefault(); itemMenu(e, n) },
     ondragstart: () => { drag = n.id }, ondragover: (e) => e.preventDefault(),
-    ondrop: (e) => { e.preventDefault(); e.stopPropagation(); dropOn(n.parentId, n.index) },
+    ondrop: (e) => { e.preventDefault(); e.stopPropagation(); dropOn(n.parentId, n.index, e) },
   }, cb, iconEl(n, m), h('span', { class: 't' }, n.title || n.url), m.fav ? '★' : null,
     m.comment ? h('span', { title: m.comment }, '📝') : null,
     m.remind ? h('span', { title: new Date(m.remind).toLocaleString('de-DE') }, '⏰') : null,
@@ -258,7 +270,7 @@ function itemEl(n) {
 }
 function folderEl(n) {
   const d = h('details', { class: 'sub', open: S.open[n.id] ?? true },
-    h('summary', { oncontextmenu: (e) => { e.preventDefault(); colMenu(e, n, true) }, ondragover: (e) => e.preventDefault(), ondrop: (e) => { e.preventDefault(); e.stopPropagation(); dropOn(n.id) } },
+    h('summary', { oncontextmenu: (e) => { e.preventDefault(); colMenu(e, n, true) }, ondragover: (e) => e.preventDefault(), ondrop: (e) => { e.preventDefault(); e.stopPropagation(); dropOn(n.id, undefined, e) } },
       h('span', {}, '📁 ' + (n.title || 'Ordner')), h('span', { class: 'muted' }, ' ' + countUrls(n))),
     h('div', { class: 'subbody' }, (n.children || []).filter(passes).map((c) => (c.url ? itemEl(c) : folderEl(c)))))
   d.addEventListener('toggle', () => { if (d.open !== (S.open[n.id] ?? true)) { S.open[n.id] = d.open; persist() } })
@@ -268,7 +280,7 @@ function colEl(f) {
   const cm = ws().colNames[f.id] || {}
   return h('section', {
     class: 'col', style: { '--c': cm.color || 'var(--bd)' }, ondragover: (e) => e.preventDefault(),
-    ondrop: (e) => { e.preventDefault(); if (!f.virtual) dropOn(f.id) },
+    ondrop: (e) => { e.preventDefault(); dropOn(f.virtual ? barOf(T).id : f.id, undefined, e) },
   }, h('header', { class: 'colhead' }, h('span', { class: 'colname' }, cm.name || f.title || '(ohne Namen)'), h('span', { class: 'muted' }, String(countUrls(f))), h('button', { class: 'ico', onclick: (e) => colMenu(e, f) }, '⋯')),
   h('div', { class: 'colbody' }, (f.children || []).filter(passes).map((n) => (n.url ? itemEl(n) : folderEl(n)))))
 }
@@ -281,10 +293,43 @@ function renderBoard() {
     cols.length ? null : h('p', { class: 'muted' }, 'Keine Lesezeichen. Einstellungen → „Seed importieren“ oder Lesezeichen anlegen.')].filter(Boolean))
   renderSelBar()
 }
-async function dropOn(parentId, index) {
+async function dropOn(parentId, index, ev) {
   const id = drag; drag = null
-  if (!id || id === parentId) return
+  if (!id) { // von außen hineingezogen (Adressleiste, andere Seite, Leiste): als neue Lesezeichen ablegen
+    const dt = ev?.dataTransfer
+    const urls = dt ? urlsFromText(dt.getData('text/uri-list') || dt.getData('text/plain')) : []
+    if (urls.length) addLinks(urls, parentId, index)
+    return
+  }
+  if (id === parentId) return
   try { await B.bookmarks.move(id, index == null ? { parentId } : { parentId, index }) } catch (e) { toast(e.message) }
+}
+// Ziel für Einfügen: der gezeigte Ordner (Fokus), sonst die erste echte Spalte, sonst die Lesezeichenleiste.
+const targetFolder = () => (focus && byId.get(focus) && !byId.get(focus).url ? focus : columnsFor(ws()).find((c) => !c.virtual)?.id || barOf(T).id)
+async function addLinks(urls, parentId = targetFolder(), index) {
+  const tabs = await B.tabs.query({}).catch(() => [])
+  const made = []
+  for (const [k, url] of urls.slice(0, 50).entries()) {
+    const title = tabs.find((t) => t.url === url)?.title || domainOf(url)
+    try { made.push(await B.bookmarks.create({ parentId, url, title, ...(index != null ? { index: index + k } : {}) })) } catch (e) { toast(e.message) }
+  }
+  if (!made.length) return
+  toast(`${made.length === 1 ? '1 Link' : made.length + ' Links'} gespeichert in „${byId.get(parentId)?.title || 'Ordner'}“`, { label: 'Rückgängig', fn: async () => {
+    for (const b of made) await B.bookmarks.remove(b.id).catch(() => {})
+    toast('Zurückgenommen')
+  } })
+}
+addEventListener('paste', (e) => {
+  if (document.querySelector('dialog[open]') || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.target.isContentEditable) return
+  const urls = urlsFromText(e.clipboardData.getData('text/uri-list') || e.clipboardData.getData('text/plain'))
+  if (!urls.length) return
+  e.preventDefault(); addLinks(urls)
+})
+async function saveTabsFolder() {
+  const r = await B.runtime.sendMessage({ type: 'saveTabsFolder' })
+  if (r?.error) return toast('Nicht gespeichert: ' + r.error)
+  if (!r?.n) return toast('Keine http(s)-Tabs in diesem Fenster')
+  toast(`${r.n} Tabs gespeichert in „${r.title}“`, { label: 'Rückgängig', fn: () => B.bookmarks.removeTree(r.id).then(() => toast('Zurückgenommen'), (e) => toast(e.message)) })
 }
 function openAll(n) {
   const u = urlsOf(n)
@@ -667,11 +712,23 @@ async function backupsDlg() {
   await draw()
   dialog('Sicherungen', body, [
     { label: 'Jetzt sichern', fn: async () => { await saveBackup(); await draw(); return false } },
-    { label: 'Exportieren (Datei)', fn: async () => {
-      const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(await makeBackup())], { type: 'application/json' })), download: `pika-own-backup-${new Date().toISOString().slice(0, 10)}.json` })
-      a.click(); return false
-    } },
+    { label: 'Exportieren (Datei)', fn: async () => { await exportBackup(); return false } },
     { label: 'Importieren …', fn: () => { file.click(); return false } }, { label: 'Schließen' }])
+}
+// Datei-Kopie außerhalb des Profils; merkt sich das Datum für den Hinweis.
+async function exportBackup() {
+  const b = await makeBackup()
+  b.state.settings.ai.orKey = '' // die Datei verlässt den Browser: kein API-Schlüssel darin
+  const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(b)], { type: 'application/json' })), download: `pika-own-backup-${new Date().toISOString().slice(0, 10)}.json` })
+  a.click()
+  S.settings.backup.lastExport = Date.now(); await persist(); renderNag()
+}
+function renderNag() {
+  const b = S.settings.backup
+  $('nag').replaceChildren(...(backupNagDue(b, Date.now()) ? [h('div', { class: 'nag' },
+    h('span', {}, b.lastExport ? `Letzte Sicherungsdatei vom ${new Date(b.lastExport).toLocaleDateString('de-DE')}. ` : 'Noch keine Sicherungsdatei außerhalb des Browsers. ', 'Geht das Profil verloren, sind sonst auch die Sicherungen weg.'),
+    h('button', { class: 'primary', onclick: exportBackup }, 'Jetzt exportieren'),
+    h('button', { title: '14 Tage nicht mehr zeigen', onclick: async () => { b.nagUntil = Date.now() + NAG_MS; await persist(); renderNag() } }, 'Später'))] : []))
 }
 async function seedDlg() {
   let folders
@@ -685,7 +742,15 @@ async function seedDlg() {
 }
 
 /* ---------- Start ---------- */
-function render() { renderHead(); renderPinned(); renderTags(); renderWidgets(); renderBars(); renderBoard() }
+function render() { renderHead(); renderNag(); renderPinned(); renderTags(); renderWidgets(); renderBars(); renderBoard() }
+// Andere Schreiber (Hintergrund: Erinnerung erledigt, Pomodoro-Phase, Sitzung; Leiste: Live-Ordner): neu laden,
+// sonst überschreibt persist() deren Stand. Bei offenem Dialog oder Ziehen nur deren Felder übernehmen (absorb).
+B.storage.onChanged.addListener(async (ch, area) => {
+  const nv = ch.pika?.newValue
+  if (area !== 'local' || !nv || !S || own.delete(JSON.stringify(nv))) return
+  if (document.querySelector('dialog[open]') || drag) return absorb(S, nv, Date.now())
+  S = await load(); render()
+})
 ;(async () => {
   S = await load()
   T = await B.bookmarks.getTree(); index()

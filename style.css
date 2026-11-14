@@ -44,7 +44,9 @@ main{padding:0 16px 80px}
 #selbar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;padding:8px 12px;background:var(--card);border:1px solid var(--accent);border-radius:12px;z-index:9}
 .ctx{position:fixed;z-index:50;min-width:200px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:4px;box-shadow:0 8px 30px #0006;max-height:80vh;overflow:auto}
 .ctx button{display:block;width:100%;text-align:left;border:0;background:none}.ctx button:hover{background:color-mix(in srgb,var(--accent) 20%,transparent)}.ctx hr{border:0;border-top:1px solid var(--bd);margin:4px 0}
-.toast{position:fixed;bottom:20px;right:20px;background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:10px;z-index:99}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:10px;z-index:99;display:flex;gap:10px;align-items:center}
+.toast button{background:var(--bg);color:var(--fg);border:0;border-radius:6px;padding:3px 10px;cursor:pointer;font-weight:600}
+.nag{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px;padding:8px 12px;border:1px solid var(--bd);border-left:4px solid var(--accent);border-radius:10px;background:var(--card)}.nag span{flex:1;min-width:200px}
 dialog.dlg{background:var(--card);color:var(--fg);border:1px solid var(--bd);border-radius:14px;padding:16px;min-width:340px;max-width:min(560px,94vw);max-height:90vh;overflow:auto}
 dialog::backdrop{background:#0007}dialog h3{margin:0 0 10px}
 .row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:6px 0}.row>span{flex:0 0 38%}.row input:not([type=checkbox]),.row select,.row textarea{flex:1;min-width:0}

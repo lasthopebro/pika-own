@@ -2,6 +2,14 @@
 
 Lesezeichen-Board als Neuer Tab plus horizontale Leiste, Firefox und Chromium (MV3, Vanilla-JS, kein Build). Pläne: `openspec/changes/<change>/` (proposal, specs, design, tasks). Stand und Reihenfolge: v0.3 → v0.4 → v0.5.
 
+## Technik (festgelegt, nicht ohne Change ändern)
+- **Sprache und Laufzeit:** Vanilla-JavaScript (ES-Module), Manifest V3, kein Framework, kein Bundler, kein Build-Schritt. Der Ordner ist direkt als Erweiterung ladbar.
+- **Gemeinsame Skripte:** Was auch im Content-Script läuft (`lib/bar.js`), ist ein klassisches Skript ohne Importe.
+- **Zustand:** nur `storage.local` Schlüssel `pika`, Schreiben nur über `update()` aus `lib/store.js` (Sperre). Neue Felder mit Standardwert in `DEFAULT` und `merge()`.
+- **Tests:** `node:test` (`npm test`) für reine Logik, Playwright-Chromium (`tools/e2e-chromium.mjs`) für die Oberfläche, `web-ext lint`. Keine weiteren Test-Frameworks.
+- **CI:** GitHub Actions (`.github/workflows/ci.yml`): Unit-Tests, Lint und E2E bei jedem PR. Ein PR wird nur mit grüner CI gemergt.
+- **Abhängigkeiten:** keine zur Laufzeit. Werkzeuge (`web-ext`, Playwright) nur zum Prüfen und Paketieren.
+
 ## Regeln (hart)
 1. **Eigener Code.** Kein Code, Name, Logo, Text oder Grafik von Pikamark. Vorbild ist nur das Aussehen und Verhalten laut Spezifikation. Fremde Repos nur mit permissiver Lizenz und NOTICE (siehe `inspiration/`).
 2. **Nutzerdaten bleiben lokal.** `data/` und `work/private/` nie committen. Keine Schlüssel oder Tokens im Repo.
