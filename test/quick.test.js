@@ -16,6 +16,14 @@ test('absorb: übernimmt fremde Sitzungen, Timer und erledigte Erinnerungen, beh
   assert.deepEqual([S.workspaces[0].widgets[0].until, S.workspaces[0].widgets[0].phase], [777, 'break'])
 })
 
+test('absorb: Todo-Punkte (notified) und Notiztext kommen aus dem fremden Stand, andere Widget-Felder bleiben', () => {
+  const S = { settings: { pagebar: {} }, meta: {}, workspaces: [{ widgets: [{ id: 'd', type: 'todo', label: 'lokal', items: [{ id: 'a', t: 'A' }] }, { id: 'n', type: 'notes', text: 'alt', label: 'N' }, { id: 'z', type: 'counter', n: 1 }] }] }
+  absorb(S, { workspaces: [{ widgets: [{ id: 'd', type: 'todo', label: 'fremd', items: [{ id: 'a', t: 'A', notified: true }] }, { id: 'n', type: 'notes', text: 'neu' }, { id: 'z', type: 'counter', n: 9 }] }] }, 0)
+  const [d, n, z] = S.workspaces[0].widgets
+  assert.deepEqual(d.items, [{ id: 'a', t: 'A', notified: true }]); assert.equal(d.label, 'lokal')
+  assert.equal(n.text, 'neu'); assert.equal(n.label, 'N'); assert.equal(z.n, 1)
+})
+
 test('absorb: null-Einträge und Workspace ohne widgets stören nicht', () => {
   const S = { settings: { pagebar: {} }, meta: {}, workspaces: [{ widgets: [null, { id: 't', type: 'timer', until: 1 }] }, {}] }
   absorb(S, { workspaces: [{ widgets: [null, { id: 't', type: 'timer', until: 9 }] }] }, 0)

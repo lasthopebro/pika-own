@@ -6,6 +6,7 @@ import { loadItems } from './lib/dials.js'
 import { groupHistory, normUrl, isExcluded } from './lib/logic.js'
 import { OPS, liveItems } from './lib/folders.js'
 import { timerNext } from './lib/quick.js'
+import { dueSoon, planTodoAlarms, overdueUnnotified, BURST } from './lib/todo.js'
 import { menuSpecs, menuKey, LF_PREFIX } from './lib/ctxmenu.js'
 
 const note = (id, message) => B.notifications.create(id, { type: 'basic', iconUrl: B.runtime.getURL('icons/icon-128.png'), title: 'pika-own', message: message.slice(0, 200) })
@@ -20,6 +21,34 @@ async function timerDone(id) {
     if (w.until) B.alarms.create('timer|' + id, { when: w.until })
   })
 }
+
+// Todo mit Fälligkeit: Alarm todo|<Widget>|<Punkt>. Genau eine Benachrichtigung je Punkt: der Merker notified wird unter der Sperre gesetzt.
+async function todoDone(wid, iid) {
+  await update(async (S) => {
+    const w = S.workspaces.flatMap((x) => x.widgets || []).find((x) => x?.id === wid && x.type === 'todo')
+    const i = w?.items?.find((x) => x.id === iid)
+    if (!i) return
+    if (!dueSoon([i], Date.now() + 1000).length) return // schon gemeldet, erledigt oder noch nicht fällig (Alarm kam zu früh): syncTodos plant neu
+    await note(`todo|${wid}|${iid}`, i.t)
+    i.notified = true
+  })
+}
+// Mehr als BURST überfällige Punkte (z. B. nach Browserstart): eine Sammelmeldung, alle auf notified. Wirft note(), bleibt notified ungesetzt (nächster Versuch).
+const todoBurst = () => update(async (S) => {
+  const late = overdueUnnotified(S.workspaces, Date.now() + 1000)
+  if (late.length <= BURST) return false
+  await note('todo|sammel', `${late.length} Todos überfällig`)
+  late.forEach((i) => { i.notified = true })
+  return true
+})
+// Alarme mit den Todo-Daten abgleichen: veraltete löschen, künftige stellen, überfällige (z. B. nach Browserstart) nachholen. Nacheinander, damit sich zwei Läufe nicht überschneiden.
+let todoQ = Promise.resolve()
+const syncTodos = () => (todoQ = todoQ.then(async () => {
+  await todoBurst() // danach ist die Masse gemeldet; der Plan unten enthält sie nicht mehr
+  const plan = planTodoAlarms((await load()).workspaces), want = new Set(plan.map((p) => p.name))
+  for (const a of await B.alarms.getAll()) if (a.name.startsWith('todo|') && !want.has(a.name)) await B.alarms.clear(a.name)
+  for (const p of plan) { if (p.when <= Date.now()) await todoDone(p.wid, p.iid); else B.alarms.create(p.name, { when: p.when }) }
+}).catch(() => {}))
 
 // Alle http(s)-Tabs des Fensters als neuen Lesezeichen-Ordner („Weitere Lesezeichen“).
 async function saveTabsFolder() {
@@ -164,6 +193,7 @@ async function init() {
   if (!last || Date.now() - last.ts > 864e5) await saveBackup()
   await syncReminders()
   await syncTimers().catch(() => {})
+  await syncTodos()
   await syncPageBar().catch(() => {})
 }
 
@@ -174,11 +204,14 @@ B.alarms.onAlarm.addListener(async (a) => {
   if (a.name === 'daily-backup') await saveBackup()
   else if (a.name.startsWith('rem|')) await fire(a.name.slice(4))
   else if (a.name.startsWith('timer|')) await timerDone(a.name.slice(6))
+  else if (a.name.startsWith('todo|')) { const [, wid, iid] = a.name.split('|'); await todoDone(wid, iid); await syncTodos() }
 })
 // Kontextmenü nur neu aufbauen, wenn sich Live-Ordner (Name, Symbol, Reihenfolge) geändert haben.
 B.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.pika && menuKey(ch.pika.newValue?.lf) !== menuShown) buildMenus() })
 // Erinnerungs-Wecker nur neu stellen, wenn sich meta (Erinnerungen) geändert hat, nicht bei jedem Klick.
 B.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.pika && JSON.stringify(ch.pika.oldValue?.meta) !== JSON.stringify(ch.pika.newValue?.meta)) syncReminders() })
+// Todo-Alarme nur neu planen, wenn sich der Plan ändert (Punkt neu, abgehakt, gelöscht, Datum, gemeldet), nicht bei jedem Klick.
+B.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.pika && JSON.stringify(planTodoAlarms(ch.pika.oldValue?.workspaces)) !== JSON.stringify(planTodoAlarms(ch.pika.newValue?.workspaces))) syncTodos() })
 B.notifications.onClicked.addListener((id) => { if (/^https?:/.test(id)) B.tabs.create({ url: id }) })
 async function savePage(url, linkTitle, tabTitle) {
   const b = await B.bookmarks.create({ title: linkTitle || tabTitle || url, url })

@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.8.0
+- Neue Widgets (Mehr → Widget hinzufügen): **Notiz** (speichert 0,5 s nach der letzten Eingabe), **Todo** (Enter fügt hinzu, Häkchen, Löschen, Fälligkeit optional; überfällige oben und markiert, erledigte unten) und **Fotorahmen** (bis 6 `https:`-Adressen im Wechsel, Einpassen/Füllen; es werden nur Adressen gespeichert, ein nicht ladbares Bild wird übersprungen).
+- Todo-Benachrichtigung zur Fälligkeit kommt aus dem Hintergrund (Alarm `todo|<Widget>|<Punkt>`), auch ohne offenen Neuen Tab: genau eine je Punkt, nach einem Browserstart werden Alarme neu gestellt und Überfälliges nachgeholt. Höchstens die nächsten 100 Punkte werden geplant.
+- Fotorahmen lehnt `javascript:`, `http:` und andere Schemata ab; der Dialog weist darauf hin, dass der Bild-Server IP-Adresse und Zeitpunkt sieht.
+- Keine neue Berechtigung, keine Abhängigkeit. Reine Logik in `lib/todo.js` und `lib/photo.js` mit Tests; Browser-Test `widgets` um Notiz, Todo, Alarm und Fotorahmen erweitert.
+
 ## 0.7.0
 - Widget-Fundament (keine sichtbare Änderung): jeder Widget-Typ liegt in einer Datei `widgets/<typ>.js` mit festem Vertrag, `widgets/index.js` ist die einzige Liste; Hinzufügen-Dialog, Titel und Darstellung kommen nur daraus.
 - Widgets speichern über `patchWidget`/`addWidget`/`removeWidget` (`lib/store.js`) unter der Speichersperre: zwei offene Neue Tabs oder der Pomodoro-Wechsel im Hintergrund überschreiben einander nicht mehr (Zähler, Textbausteine).

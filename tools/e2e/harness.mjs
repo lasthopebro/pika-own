@@ -49,8 +49,8 @@ export async function flow(name, fn, { mockServer: withMock = true } = {}) {
     return p
   }
   env.newtab = async () => { const p = await env.open(`chrome-extension://${env.id}/newtab.html`); await p.waitForSelector('#top button'); return p }
-  // Wartet auf eine Bedingung im Seitenkontext und liefert true/false, statt zu werfen (der Ablauf läuft weiter, die Prüfung wird FAIL).
-  env.until = (page, fn, arg, timeout = 8000) => page.waitForFunction(fn, arg, { timeout }).then(() => true, () => false)
+  // Wartet auf eine Bedingung im Seitenkontext (auch async: page.evaluate wartet auf das Promise, waitForFunction würde es sofort als wahr werten) und liefert true/false, statt zu werfen.
+  env.until = (page, fn, arg, timeout = 8000) => env.poll(() => page.evaluate(fn, arg).catch(() => false), timeout)
   // Wartet im Node-Kontext auf eine Bedingung (z. B. Zahl der Tabs); true/false.
   env.poll = async (f, ms = 8000) => { for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 100))) if (await f()) return true; return !!(await f()) }
   // Erfundene Ordner aus test/fixtures (läuft auch in CI), danach neu laden, damit der Baum ruhig steht.

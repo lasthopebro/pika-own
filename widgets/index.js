@@ -4,5 +4,8 @@ import countdown from './countdown.js'
 import timer from './timer.js'
 import counter from './counter.js'
 import snippets from './snippets.js'
+import notes from './notes.js'
+import todo from './todo.js'
+import photo from './photo.js'
 
-export const WIDGETS = { clock, countdown, timer, counter, snippets }
+export const WIDGETS = { clock, countdown, timer, counter, snippets, notes, todo, photo }
