@@ -4,7 +4,7 @@
   "version": "0.8.0",
   "description": "Eigenes Lesezeichen-Board mit Schnellwahl aus dem Verlauf, eigenen Seitenleisten-Ansichten und KI-Tab-Sortierung (Ollama/OpenRouter).",
   "icons": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png" },
-  "permissions": ["bookmarks", "history", "topSites", "storage", "unlimitedStorage", "tabs", "alarms", "notifications", "contextMenus", "sidePanel", "scripting", "tabGroups"],
+  "permissions": ["bookmarks", "history", "storage", "unlimitedStorage", "tabs", "alarms", "notifications", "contextMenus", "sidePanel", "scripting", "tabGroups"],
   "optional_host_permissions": ["<all_urls>"],
   "host_permissions": ["http://localhost:11434/*", "http://127.0.0.1:11434/*", "https://openrouter.ai/*"],
   "background": { "scripts": ["background.js"], "service_worker": "background.js", "type": "module" },
