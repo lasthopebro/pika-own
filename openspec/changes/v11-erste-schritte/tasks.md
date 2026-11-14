@@ -9,8 +9,8 @@ Regeln wie in `v08-widgets`: höchstens 2 Dateien und etwa 80 Zeilen je Task, am
 
 ## 2. Berechtigungsseite
 
-- [ ] 2.1 [günstig] `lib/perms-info.js` (Name → ein Satz Klartext, alle Einträge aus `docs/BERECHTIGUNGEN.md`) plus `test/perms-info.test.js`, das Manifest und Tabelle gegen die Klartexte prüft. Prüfen: `npm test`.
-- [ ] 2.2 [stark] `newtab.js` Einstellungen → Datenschutz: Liste aus `runtime.getManifest()` + `permissions.getAll()` mit Klartext und Status; optionale mit „Widerrufen“ (`permissions.remove`, Fehler als Meldung), Pflicht-Berechtigungen ohne Knopf; nach Widerruf Leiste auf Webseiten sauber entfernt. Prüfen: Handprüfung in Chromium und Firefox, `node tools/check-permissions.mjs`.
+- [x] 2.1 [günstig] `lib/perms-info.js` (Name → ein Satz Klartext, alle Einträge aus `docs/BERECHTIGUNGEN.md`) plus `test/perms-info.test.js`, das Manifest und Tabelle gegen die Klartexte prüft. Prüfen: `npm test`.
+- [x] 2.2 [stark] `newtab.js` Einstellungen → Datenschutz: Liste aus `runtime.getManifest()` + `permissions.getAll()` mit Klartext und Status; optionale mit „Widerrufen“ (`permissions.remove`, Fehler als Meldung), Pflicht-Berechtigungen ohne Knopf; nach Widerruf Leiste auf Webseiten sauber entfernt. Prüfen: Handprüfung in Chromium und Firefox, `node tools/check-permissions.mjs`.
 
 ## 3. Leere Ordner
 

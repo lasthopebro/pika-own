@@ -17,6 +17,7 @@ import { urlsFromText, backupNagDue, NAG_MS, absorb, canon } from './lib/quick.j
 import { WIDGETS } from './widgets/index.js'
 import { cleanPath, crumbs, children, filterChildren, up, pathTo, folderList } from './lib/gallery.js'
 import { runTour } from './lib/tour-ui.js'
+import { permsNode } from './lib/perms-ui.js'
 
 let S, T, histItems = [], filterTag = '', selMode = false, focus = null, drag = null, importing = false
 const own = new Set() // selbst geschriebene Stände (JSON), damit deren Änderungsereignis nicht neu lädt
@@ -832,6 +833,14 @@ function settingsDlg() {
     e.target.textContent = pb.on ? 'Leiste auf Webseiten ausschalten' : 'Leiste auf Webseiten einschalten …'
     toast(pb.on ? 'Leiste auf Webseiten an (geöffnete Seiten neu laden)' : 'Leiste auf Webseiten aus')
   })()
+  const pbRow = act('Leiste auf Webseiten', pb.on ? 'Leiste auf Webseiten ausschalten' : 'Leiste auf Webseiten einschalten …', pbToggle)
+  // Webseiten-Berechtigung widerrufen: Leiste aus (Skript wird in der Zentrale abgemeldet), der Knopf oben bietet das Einschalten wieder an.
+  const permsRow = { label: 'Berechtigungen Zugriff Widerruf erteilt Datenschutz', node: permsNode({ manifest: B.runtime.getManifest(), perms: B.permissions, onRevoke: async (e) => {
+    if (e.name !== '<all_urls>') return
+    pb.on = false; await persist(); await B.runtime.sendMessage({ type: 'pagebar' })
+    pbRow.node.querySelector('button').textContent = 'Leiste auf Webseiten einschalten …'
+    toast('Leiste auf Webseiten aus (geöffnete Seiten neu laden)')
+  } }) }
   const folderStat = h('p', { class: 'muted' })
   const paint = async () => {
     const f = S.settings.backup.folder
@@ -866,7 +875,7 @@ function settingsDlg() {
     { ...act('Hintergrund', 'Foto als Hintergrund …', () => photo.click()), keywords: 'bild' }, { label: '', node: photo },
     { section: 'Leiste' },
     { name: 'newtabBar', label: 'Leiste im Neuen Tab anzeigen', type: 'checkbox', value: s.newtabBar },
-    act('Leiste auf Webseiten', pb.on ? 'Leiste auf Webseiten ausschalten' : 'Leiste auf Webseiten einschalten …', pbToggle),
+    pbRow,
     { name: 'pbExclude', label: 'Leiste auf Webseiten ausblenden bei', value: pb.exclude, placeholder: 'bank.de, mail.com' },
     { section: 'Schnellwahl' },
     { name: 'quick', label: 'Schnellwahl-Einträge in der Leiste (0 bis 20)', type: 'number', min: 0, max: 20, value: pb.quick },
@@ -897,6 +906,7 @@ function settingsDlg() {
     act('KI Ollama OpenRouter Modell Anbieter', 'KI-Einstellungen …', aiDlg),
     { section: 'Datenschutz' },
     { name: 'favicons', label: 'Seiten-Icons laden (Netzwerk)', type: 'checkbox', value: s.favicons },
+    permsRow,
   ], { ok: 'Speichern', search: true }).then(async (v) => {
     if (!v) return
     Object.assign(s, { theme: v.theme, accent: v.accent, pitch: v.pitch, view: v.view, galleryMode: v.galleryMode, galleryDensity: v.galleryDensity, font: v.font, discover: v.discover, favicons: v.favicons, newtabBar: v.newtabBar, openInNewTab: v.openInNewTab, confirmDelete: v.confirmDelete, hidden: v.hidden.split(',').map((x) => x.trim()).filter(Boolean) })
