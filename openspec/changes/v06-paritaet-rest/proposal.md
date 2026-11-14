@@ -1,5 +1,7 @@
 # Proposal
 
+> **Ersetzt durch `v09-sicherung`, `v10-galerie`, `v11-erste-schritte` und `v12-kopieren-suchen`** (Stand v0.8.0). Bereits gebaut: Strg+V/Hineinziehen, Tabs als Ordner, Pomodoro, Benachrichtigungen, Foto-Widget (als Adressen), Einstellungssuche. Gestrichen: schwebende/angedockte Werkzeugleiste, weitere Sprachen. Popup bleibt in `v03-fundament-und-board` 4.8. Dieser Change wird nicht mehr umgesetzt; Archivierung entscheidet der Planpfleger.
+
 ## Why
 
 Der Funktionsvergleich mit der öffentlichen Beschreibung des Vorbilds (`docs/FUNKTIONSLISTE.md`) zeigt Funktionen, die nicht in v0.3 bis v0.5 passen, aber zum Nachbau gehören. Sie kommen gesammelt in v0.6, damit v0.3 klein genug bleibt, um gebaut und geprüft zu werden.
