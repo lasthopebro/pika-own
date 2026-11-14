@@ -1,6 +1,6 @@
 # AGENTS.md – pika-own (für Claude, Hermes, Codex, OpenCode und Menschen)
 
-Lesezeichen-Board als Neuer Tab plus horizontale Leiste, Firefox und Chromium (MV3, Vanilla-JS, kein Build). Pläne: `openspec/changes/<change>/` (proposal, specs, design, tasks). Veröffentlicht: v0.5.1 (Release), in `main`: v0.5.2, Audit-Fixes, v0.3-Rest (Papierkorb, Dubletten). **Reihenfolge der offenen Changes:** `v06-feinschliff` → `v07-widget-fundament` → `v08-widgets`; `v06-paritaet-rest` ist ein Sammelbecken, daraus nur einzelne Punkte in eigene Changes ziehen. Skill für die Wiederaufnahme: `pika-weiter`.
+Lesezeichen-Board als Neuer Tab plus horizontale Leiste, Firefox und Chromium (MV3, Vanilla-JS, kein Build). Pläne: `openspec/changes/<change>/` (proposal, specs, design, tasks). Stand: v0.8.0 veröffentlicht (v0.3 bis v0.8 in `main`); offen ist nur `v06-paritaet-rest` bzw. dessen Nachfolger. Archiviert: v07, v08.
 
 ## Technik (festgelegt, nicht ohne Change ändern)
 - **Sprache und Laufzeit:** Vanilla-JavaScript (ES-Module), Manifest V3, kein Framework, kein Bundler, kein Build-Schritt. Der Ordner ist direkt als Erweiterung ladbar.

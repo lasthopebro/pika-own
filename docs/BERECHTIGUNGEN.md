@@ -6,7 +6,6 @@ Jede Berechtigung in `manifest.json` (`permissions`, `optional_permissions`, `ho
 |---|---|
 | `bookmarks` | Lesezeichen lesen, anlegen, verschieben und löschen (Board, Einfügen, Ordner aus Tabs, Papierkorb). |
 | `history` | Schnellwahl, „Zuletzt besucht“ und Weitermachen-Karten aus dem Verlauf; bleibt lokal. |
-| `topSites` | Reserviert für die Schnellwahl „Meistbesucht“; der Code nutzt derzeit nur `history` (offen: entfernen oder einsetzen). |
 | `storage` | Zustand, Einstellungen und Sicherungen in `storage.local` (Schlüssel `pika`). |
 | `unlimitedStorage` | Sicherungen und Sitzungen können das Standard-Limit von `storage.local` überschreiten. |
 | `tabs` | Offene Tabs lesen (Tab-Sitzungen, KI-Sortierung, Live-Ordner), Tabs öffnen und fokussieren. |
