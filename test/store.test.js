@@ -41,3 +41,20 @@ test('merge: alter Stand (v0.5.2) behält Werte, neue Optionen bekommen Standard
   assert.equal(s.newtabBar, true); assert.equal(s.openInNewTab, false); assert.equal(s.confirmDelete, true); assert.deepEqual(s.pomo, { work: 25, brk: 5 })
   assert.deepEqual(merge({ settings: { pomo: { work: 50 } } }).settings.pomo, { work: 50, brk: 5 }) // verschachtelt ergänzt
 })
+
+test('patchWidget ändert nur das eine Widget und behält fremde Felder', async () => {
+  const { patchWidget, addWidget, removeWidget } = await import('../lib/store.js')
+  mem.pika = { schema: SCHEMA, workspaces: [{ id: 'w1', name: 'A', widgets: [{ id: 'a', type: 'counter', n: 1, fremd: 'bleibt' }, { id: 'b', type: 'snippets', items: ['x'] }] }] }
+  delay = 5
+  // zwei „Tabs“ schreiben gleichzeitig verschiedene Widgets; ein Hintergrund-Feld (until) kommt dazwischen
+  const [wa, wb] = await Promise.all([patchWidget('a', (w) => { w.n += 1 }), patchWidget('b', (w) => { w.items = ['y'] }), patchWidget('a', (w) => { w.until = 5 })])
+  delay = 0
+  const ws = mem.pika.workspaces[0].widgets
+  assert.deepEqual(ws.find((w) => w.id === 'a'), { id: 'a', type: 'counter', n: 2, fremd: 'bleibt', until: 5 })
+  assert.deepEqual(ws.find((w) => w.id === 'b').items, ['y'])
+  assert.equal(wa.n, 2); assert.deepEqual(wb.items, ['y'])
+  assert.equal(await patchWidget('weg', () => assert.fail('darf nicht laufen')), null)
+  let seen; await addWidget('w1', { id: 'c', type: 'counter', n: 0 }, (S) => { seen = S.workspaces[0].widgets.length })
+  assert.equal(seen, 3); assert.equal(mem.pika.workspaces[0].widgets.length, 3)
+  await removeWidget('c'); assert.deepEqual(mem.pika.workspaces[0].widgets.map((w) => w.id), ['a', 'b'])
+})

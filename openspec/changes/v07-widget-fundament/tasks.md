@@ -15,7 +15,7 @@ Regeln für jeden Task: höchstens 2 Dateien und etwa 80 geänderte Zeilen; am E
 
 ## 3. Registry
 
-- [ ] 3.1 [stark] `patchWidget(id, fn)` in `lib/store.js` plus Test in `test/store.test.js` „patchWidget ändert nur das eine Widget und behält fremde Felder“. Prüfen: `npm test`.
+- [x] 3.1 [stark] `patchWidget(id, fn)` in `lib/store.js` plus Test in `test/store.test.js` „patchWidget ändert nur das eine Widget und behält fremde Felder“. Prüfen: `npm test`.
 - [ ] 3.2 [günstig] `widgets/index.js` (leere Liste) und `test/widgets.contract.test.js` mit DOM-Ersatz; Test läuft über `WIDGETS`. Prüfen: `npm test` grün (0 Widgets).
 - [ ] 3.3 [günstig] `widgets/counter.js` (aus `newtab.js` herauslösen, Speichern über `patch`), in `index.js` eintragen. Prüfen: Vertragstest und `tools/e2e/widgets.mjs`.
 - [ ] 3.4 [günstig] `widgets/snippets.js` wie 3.3.
