@@ -11,7 +11,8 @@
   const root = host.attachShadow({ mode: 'closed' })
   const wrap = document.createElement('div')
   const handle = document.createElement('button')
-  handle.textContent = '▾'; handle.title = 'Leiste ausklappen (Alt+Umschalt+B)'
+  const chev = globalThis.PikaIcons?.icon('down'); chev?.setAttribute('width', 10); chev?.setAttribute('height', 10); if (chev) chev.style.cssText = 'display:block;margin:1px auto'
+  handle.append(chev || '▾'); handle.title = 'Leiste ausklappen (Alt+Umschalt+B)'; handle.setAttribute('aria-label', 'Leiste ausklappen')
   handle.style.cssText = 'all:initial;display:block;margin:0 auto;width:40px;height:12px;line-height:12px;text-align:center;font:10px system-ui;background:#1f2937;color:#f3f4f6;border-radius:0 0 6px 6px;cursor:pointer'
   root.append(wrap, handle)
   let collapsed = false, hidden = false
@@ -28,6 +29,7 @@
   const toggle = () => { collapsed = !collapsed; apply(); B.runtime.sendMessage({ type: 'pbCollapse', v: collapsed }) }
   handle.onclick = toggle
   addEventListener('keydown', (e) => { if (e.altKey && e.shiftKey && e.code === 'KeyB') toggle() })
+  B.runtime.onMessage.addListener((m) => { if (m?.type === 'toggleBar') toggle() }) // Tastenkürzel aus dem Manifest
   document.addEventListener('fullscreenchange', apply)
   de.append(host)
   PikaBar.mount(wrap, { host: location.hostname, onCollapse: toggle, onChange: (d) => { hidden = !!d.hidden; collapsed = !!d.collapsed; apply() } })

@@ -21,3 +21,14 @@ test('splitOverflow: 100 Einträge sind schnell', () => {
   const t = performance.now(); const n = splitOverflow(Array(100).fill(80), 1200)
   assert.ok(n > 0 && n < 100 && performance.now() - t < 20)
 })
+
+test('nextIndex (Leiste): Pfeile mit Umlauf, Raster auch links/rechts', () => {
+  const { nextIndex } = globalThis.PikaBar
+  assert.equal(nextIndex(2, 3, 'ArrowDown'), 0)
+  assert.equal(nextIndex(0, 3, 'ArrowUp'), 2)
+  assert.equal(nextIndex(-1, 3, 'ArrowUp'), 2)
+  assert.equal(nextIndex(1, 3, 'ArrowRight'), 1) // ohne Raster: unverändert
+  assert.equal(nextIndex(1, 3, 'ArrowRight', true), 2)
+  assert.equal(nextIndex(0, 3, 'ArrowLeft', true), 2)
+  assert.equal(nextIndex(1, 9, 'End'), 8)
+})
