@@ -30,3 +30,14 @@ test('update: zwei gleichzeitige Änderungen gehen nicht verloren', async () => 
   delay = 0
   assert.deepEqual(mem.pika.tags, { a: 1, b: 2, c: 3 })
 })
+
+test('merge: alter Stand (v0.5.2) behält Werte, neue Optionen bekommen Standardwerte', async () => {
+  const { merge, DEFAULT } = await import('../lib/store.js')
+  const alt = { settings: { theme: 'dark', accent: '#ff0000', bg: { type: 'preset' }, pagebar: { on: true, exclude: 'bank.de' }, backup: { lastExport: 5, nagUntil: 9 } } }
+  const s = merge(alt).settings
+  assert.equal(s.theme, 'dark'); assert.equal(s.accent, '#ff0000'); assert.equal(s.bg.type, 'preset'); assert.equal(s.bg.intensity, DEFAULT.settings.bg.intensity)
+  assert.equal(s.pagebar.on, true); assert.equal(s.pagebar.exclude, 'bank.de'); assert.equal(s.pagebar.quick, 8)
+  assert.deepEqual(s.backup, { lastExport: 5, nagUntil: 9, nagDays: 14 })
+  assert.equal(s.newtabBar, true); assert.equal(s.openInNewTab, false); assert.equal(s.confirmDelete, true); assert.deepEqual(s.pomo, { work: 25, brk: 5 })
+  assert.deepEqual(merge({ settings: { pomo: { work: 50 } } }).settings.pomo, { work: 50, brk: 5 }) // verschachtelt ergänzt
+})

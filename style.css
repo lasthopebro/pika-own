@@ -43,7 +43,7 @@ main{padding:0 16px 80px}
 .gallery .sub{grid-column:1/-1}
 #selbar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;padding:8px 12px;background:var(--card);border:1px solid var(--accent);border-radius:12px;z-index:9}
 .ctx{position:fixed;z-index:50;min-width:200px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:4px;box-shadow:0 8px 30px #0006;max-height:80vh;overflow:auto}
-.ctx button{display:block;width:100%;text-align:left;border:0;background:none}.ctx button:hover{background:color-mix(in srgb,var(--accent) 20%,transparent)}.ctx hr{border:0;border-top:1px solid var(--bd);margin:4px 0}
+.ctx button{display:flex;gap:8px;align-items:center;width:100%;text-align:left;border:0;background:none}.ctx button:hover,.ctx button:focus-visible{background:color-mix(in srgb,var(--accent) 20%,transparent)}.ctx button:disabled{opacity:.5;cursor:default}.ctx .ml{flex:1}.ctx kbd{font:11px ui-monospace,Consolas,monospace;color:var(--muted)}.ctx hr{border:0;border-top:1px solid var(--bd);margin:4px 0}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:10px;z-index:99;display:flex;gap:10px;align-items:center}
 .toast button{background:var(--bg);color:var(--fg);border:0;border-radius:6px;padding:3px 10px;cursor:pointer;font-weight:600}
 .nag{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px;padding:8px 12px;border:1px solid var(--bd);border-left:4px solid var(--accent);border-radius:10px;background:var(--card)}.nag span{flex:1;min-width:200px}
@@ -60,3 +60,10 @@ dialog::backdrop{background:#0007}dialog h3{margin:0 0 10px}
 .side{padding:8px}.side #sidehead{display:flex;gap:6px;margin-bottom:8px}.side #sidehead select{flex:1;min-width:0}
 .side .item{padding:5px 4px}.side details>summary{cursor:pointer;padding:4px 0}
 .cards{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px}.card{background:var(--card,#ffffff14);border:1px solid #8884;border-radius:10px;padding:10px 12px;max-width:260px}.card ul{margin:6px 0;padding-left:16px;font-size:12px}.dot{display:inline-block;width:10px;height:10px;border-radius:50%}.dot.on{background:#22c55e}.dot.off{background:#ef4444}.aimodels progress{width:90px}.aimodels .lrow{flex-wrap:wrap}
+
+/* Symbole, Einstellungen mit Abschnitten, Emoji-Raster */
+svg.pi{flex:none;vertical-align:-3px}button.ico svg.pi,.search svg.pi{display:block}.search{display:flex;gap:8px;align-items:center}
+.sec{margin:14px 0 2px;padding-top:8px;border-top:1px solid var(--bd);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.dsearch{width:100%;position:sticky;top:-16px;z-index:2}
+.egrid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin:6px 0}.egrid button{font-size:18px;padding:4px 0}
+.keys{width:100%;border-collapse:collapse}.keys td{padding:3px 6px;border-bottom:1px solid var(--bd)}.keys td:first-child{white-space:nowrap}.keys kbd{font:12px ui-monospace,Consolas,monospace;background:var(--bg);border:1px solid var(--bd);border-radius:5px;padding:1px 6px}

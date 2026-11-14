@@ -6,8 +6,9 @@ import { loadItems } from './lib/dials.js'
 import { groupHistory, normUrl, isExcluded } from './lib/logic.js'
 import { OPS, liveItems } from './lib/folders.js'
 import { timerNext } from './lib/quick.js'
+import { menuSpecs, menuKey, LF_PREFIX } from './lib/ctxmenu.js'
 
-const note = (id, message) => B.notifications.create(id, { type: 'basic', iconUrl: B.runtime.getURL('icon128.png'), title: 'pika-own', message: message.slice(0, 200) })
+const note = (id, message) => B.notifications.create(id, { type: 'basic', iconUrl: B.runtime.getURL('icons/icon-128.png'), title: 'pika-own', message: message.slice(0, 200) })
 
 // Timer/Pomodoro: der Wecker läuft hier, damit er auch ohne offenen Neuen Tab klingelt.
 async function timerDone(id) {
@@ -62,7 +63,7 @@ async function fire(k) {
   await update(async (S) => {
     const m = S.meta[k]
     if (!m?.remind) return
-    await B.notifications.create(k, { type: 'basic', iconUrl: B.runtime.getURL('icon128.png'), title: 'pika-own Erinnerung', message: (m.comment || k).slice(0, 200) })
+    await B.notifications.create(k, { type: 'basic', iconUrl: B.runtime.getURL('icons/icon-128.png'), title: 'pika-own Erinnerung', message: (m.comment || k).slice(0, 200) })
     delete m.remind
   })
 }
@@ -112,7 +113,7 @@ async function syncPageBar() {
   if (!pagebar.on) return
   const { origins = [] } = await B.permissions.getAll()
   const matches = origins.some((o) => o === '<all_urls>' || o === '*://*/*') ? ['<all_urls>'] : origins.filter((o) => /^(https?|\*):/.test(o))
-  if (matches.length) await B.scripting.registerContentScripts([{ id: 'pika-bar', matches, js: ['lib/bar.js', 'content/bar.js'], runAt: 'document_idle', persistAcrossSessions: true }])
+  if (matches.length) await B.scripting.registerContentScripts([{ id: 'pika-bar', matches, js: ['lib/icons.js', 'lib/bar.js', 'content/bar.js'], runAt: 'document_idle', persistAcrossSessions: true }])
 }
 // Seitenzugriff im Add-on-Manager geändert: Leiste sofort neu registrieren statt erst nach Neustart.
 for (const ev of ['onAdded', 'onRemoved']) B.permissions?.[ev]?.addListener(() => syncPageBar().catch(() => {}))
@@ -144,13 +145,19 @@ let bc
 const broadcast = () => { clearTimeout(bc); bc = setTimeout(async () => { for (const t of await httpTabs()) B.tabs.sendMessage(t.id, { type: 'tabsChanged' }).catch(() => {}) }, 400) }
 for (const ev of ['onCreated', 'onRemoved']) B.tabs[ev].addListener(broadcast)
 B.tabs.onUpdated.addListener((id, ch) => { if (ch.url || ch.status === 'complete') broadcast() })
-async function init() {
-  try {
+// Kontextmenü neu aufbauen (nacheinander, damit zwei Aufbauten sich nicht überschneiden).
+let menuQ = Promise.resolve(), menuShown = ''
+function buildMenus() {
+  menuQ = menuQ.then(async () => {
+    const { lf } = await load()
     await B.contextMenus.removeAll()
-    B.contextMenus.create({ id: 'save-page', title: 'In pika-own speichern', contexts: ['page', 'link'] })
-    B.contextMenus.create({ id: 'save-session', title: 'Alle Tabs als pika-own-Sitzung speichern', contexts: ['page'] })
-    B.contextMenus.create({ id: 'save-tabs-folder', title: 'Alle Tabs als Lesezeichen-Ordner speichern', contexts: ['page'] })
-  } catch {}
+    for (const m of menuSpecs(lf)) B.contextMenus.create(m)
+    menuShown = menuKey(lf)
+  }).catch(() => {})
+  return menuQ
+}
+async function init() {
+  await buildMenus().catch(() => {})
   Promise.resolve(B.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true })).catch(() => {})
   B.alarms.create('daily-backup', { periodInMinutes: 1440 })
   const last = (await listBackups())[0]
@@ -168,20 +175,37 @@ B.alarms.onAlarm.addListener(async (a) => {
   else if (a.name.startsWith('rem|')) await fire(a.name.slice(4))
   else if (a.name.startsWith('timer|')) await timerDone(a.name.slice(6))
 })
+// Kontextmenü nur neu aufbauen, wenn sich Live-Ordner (Name, Symbol, Reihenfolge) geändert haben.
+B.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.pika && menuKey(ch.pika.newValue?.lf) !== menuShown) buildMenus() })
 // Erinnerungs-Wecker nur neu stellen, wenn sich meta (Erinnerungen) geändert hat, nicht bei jedem Klick.
 B.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.pika && JSON.stringify(ch.pika.oldValue?.meta) !== JSON.stringify(ch.pika.newValue?.meta)) syncReminders() })
 B.notifications.onClicked.addListener((id) => { if (/^https?:/.test(id)) B.tabs.create({ url: id }) })
+async function savePage(url, linkTitle, tabTitle) {
+  const b = await B.bookmarks.create({ title: linkTitle || tabTitle || url, url })
+  const [p] = await B.bookmarks.get(b.parentId).catch(() => [])
+  note('saved|' + b.id, `Gespeichert in „${p?.title || 'Lesezeichen'}“: ${b.title}`)
+}
 B.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === 'save-page') {
+  const id = String(info.menuItemId)
+  if (id === 'save-page') {
+    await savePage(info.linkUrl || info.pageUrl, info.linkUrl ? info.linkUrl : '', tab?.title)
+  } else if (id.startsWith(LF_PREFIX)) {
     const url = info.linkUrl || info.pageUrl
-    const b = await B.bookmarks.create({ title: info.linkUrl ? info.linkUrl : tab?.title || url, url })
-    const [p] = await B.bookmarks.get(b.parentId).catch(() => [])
-    note('saved|' + b.id, `Gespeichert in „${p?.title || 'Lesezeichen'}“: ${b.title}`)
-  } else if (info.menuItemId === 'save-tabs-folder') {
+    if (/^https?:/.test(url)) await update((S) => OPS.assign(S, id.slice(LF_PREFIX.length), url, info.linkUrl ? info.linkText || url : tab?.title || url))
+  } else if (id === 'save-tabs-folder') {
     const r = await saveTabsFolder()
     note('saved|tabs', r.n ? `${r.n} Tabs gespeichert in „${r.title}“` : 'Keine http(s)-Tabs in diesem Fenster')
-  } else if (info.menuItemId === 'save-session') {
+  } else if (id === 'save-session') {
     const tabs = await openTabs()
     await update((S) => saveSession(S, 'Sitzung ' + new Date().toLocaleString('de-DE'), tabs))
   }
+})
+// Tastenkürzel (im Browser änderbar). _execute_sidebar_action führt Firefox selbst aus;
+// Chromium liefert sie als normales Kommando, dort öffnen wir das Seitenpanel.
+B.commands?.onCommand.addListener(async (cmd, tab) => {
+  // sidePanel.open braucht die Nutzergeste: kein await davor
+  if (cmd === '_execute_sidebar_action') return void Promise.resolve(B.sidePanel?.open?.({ windowId: tab?.windowId })).catch(() => {})
+  const t = tab?.id ? tab : (await B.tabs.query({ active: true, currentWindow: true }))[0]
+  if (cmd === 'save-page' && /^https?:/.test(t?.url || '')) await savePage(t.url, '', t.title)
+  else if (cmd === 'toggle-bar' && t?.id) await B.tabs.sendMessage(t.id, { type: 'toggleBar' }).catch(() => {})
 })

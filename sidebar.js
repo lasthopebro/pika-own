@@ -25,7 +25,7 @@ const link = (title, url, sub) => h('a', { class: 'item', href: url, title: url,
   tile(domainOf(url), S.settings.favicons), h('span', { class: 't' }, title || url), sub ? h('span', { class: 'muted' }, sub) : null)
 const muted = (t) => h('p', { class: 'muted' }, t)
 function nodeList(n) {
-  return (n.children || []).map((c) => (c.url ? link(c.title, c.url) : h('details', { open: true }, h('summary', {}, '📁 ' + (c.title || 'Ordner')), h('div', { style: { marginLeft: '10px' } }, nodeList(c)))))
+  return (n.children || []).map((c) => (c.url ? link(c.title, c.url) : h('details', { open: true }, h('summary', {}, globalThis.PikaIcons.icon('folder'), ' ' + (c.title || 'Ordner')), h('div', { style: { marginLeft: '10px' } }, nodeList(c)))))
 }
 
 async function renderView() {
@@ -50,7 +50,7 @@ async function renderView() {
   } else if (v.type === 'tabs') {
     const tabs = await B.tabs.query({ currentWindow: true })
     body.append(...tabs.map((t) => h('div', { class: 'lrow item', style: { cursor: 'pointer' }, onclick: () => B.tabs.update(t.id, { active: true }) },
-      tile(domainOf(t.url || ''), false), h('span', { class: 't' }, t.title || t.url), h('button', { class: 'ico', onclick: (e) => { e.stopPropagation(); B.tabs.remove(t.id) } }, '✕'))))
+      tile(domainOf(t.url || ''), false), h('span', { class: 't' }, t.title || t.url), h('button', { class: 'ico', title: 'Tab schließen', 'aria-label': 'Tab schließen', onclick: (e) => { e.stopPropagation(); B.tabs.remove(t.id) } }, globalThis.PikaIcons.icon('close')))))
   } else if (v.type === 'search') {
     const res = h('div'), all = flat(T[0])
     const input = h('input', { placeholder: 'Lesezeichen suchen …', style: { width: '100%' }, oninput: () => {
@@ -59,17 +59,17 @@ async function renderView() {
     } })
     body.append(input, res); input.focus()
   } else if (v.type === 'sessions') {
-    body.append(...(S.sessions.length ? S.sessions.map((s) => h('div', { class: 'lrow' }, h('span', {}, `${s.name} · ${s.tabs.length}`), h('button', { onclick: () => openSession(s) }, 'Öffnen'))) : [muted('Noch keine Sitzungen (im Board: ⏱)')]))
+    body.append(...(S.sessions.length ? S.sessions.map((s) => h('div', { class: 'lrow' }, h('span', {}, `${s.name} · ${s.tabs.length}`), h('button', { onclick: () => openSession(s) }, 'Öffnen'))) : [muted('Noch keine Sitzungen (im Board: Mehr, Tab-Sitzungen)')]))
   } else if (v.type === 'links') {
     const rows = (v.arg || '').split('\n').map((l) => l.split(';').map((s) => s.trim())).filter((p) => /^https?:/.test(p[1] || ''))
-    body.append(...(rows.length ? rows.map(([t, u]) => link(t, u)) : [muted('Keine Links. ✎ → Zeilen „Titel ; https://…“')]))
+    body.append(...(rows.length ? rows.map(([t, u]) => link(t, u)) : [muted('Keine Links. „Ansicht bearbeiten“, dann Zeilen „Titel ; https://…“')]))
   }
 }
 
 function head() {
   const sel = h('select', { onchange: (e) => { cur = e.target.value; localStorage.setItem('pika-view', cur); renderView() } },
     views().map((v) => h('option', { value: v.id, selected: v.id === cur }, v.name)))
-  $('sidehead').replaceChildren(sel, h('button', { class: 'ico', title: 'Neue Ansicht', onclick: () => edit(null) }, '＋'), h('button', { class: 'ico', title: 'Ansicht bearbeiten', onclick: () => edit(views().find((v) => v.id === cur)) }, '✎'))
+  $('sidehead').replaceChildren(sel, h('button', { class: 'ico', title: 'Neue Ansicht', 'aria-label': 'Neue Ansicht', onclick: () => edit(null) }, globalThis.PikaIcons.icon('plus')), h('button', { class: 'ico', title: 'Ansicht bearbeiten', 'aria-label': 'Ansicht bearbeiten', onclick: () => edit(views().find((v) => v.id === cur)) }, globalThis.PikaIcons.icon('edit')))
 }
 
 async function edit(v) {

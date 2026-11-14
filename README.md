@@ -23,6 +23,13 @@ Eigener Code, clean-room: Vorbild ist nur Aussehen und Verhalten, kein fremder C
 - **Sicherungsdatei:** Nach 14 Tagen ohne Export erinnert ein Hinweis an eine Kopie außerhalb des Browsers („Später“ = 14 Tage Ruhe).
 - **Seitenleiste:** Ansicht „Live-Ordner“ zeigt dieselbe Leiste senkrecht.
 
+## Symbole, Menüs, Einstellungen (v0.6)
+- **Symbole:** eigenes Programmsymbol (Quelle `icons/icon.svg`, PNGs per `node tools/render-icons.mjs`) und ein einheitlicher Satz Strich-Symbole in Kopf, Leiste und Menüs. Jedes Symbol hat einen Namen für Screenreader, nichts wird aus dem Netz geladen.
+- **Kopf:** Suche, Auswahl, Ansicht, Alle Tabs speichern, KI, Einstellungen; Seltenes (Workspace anlegen/bearbeiten, Widget, Sitzungen) im Menü „Mehr“.
+- **Menüs mit Tastatur:** Pfeile, Pos1/Ende, Enter, Esc (Fokus kehrt zurück). Lesezeichen-Menü: „In Live-Ordner legen ▸“, „Link kopieren“, „Als Markdown kopieren“, „In neuem Fenster öffnen“. Browser-Kontextmenü: ein Eintrag „pika-own“ mit Untermenü.
+- **Tastenkürzel:** `?` zeigt alle. Im Browser änderbar (Alt+Umschalt+S Seite speichern, Alt+Umschalt+B Leiste ein-/ausklappen, Alt+Umschalt+P/L Seitenleiste): Chrome/Brave/Edge `chrome://extensions/shortcuts`, Firefox `about:addons` → Zahnrad → Tastenkürzel verwalten.
+- **Einstellungen:** Abschnitte (Aussehen, Leiste, Schnellwahl, Board, Erinnerungen & Timer, Sicherung, KI, Datenschutz) mit Suche (Taste `/`). Neu: Leiste im Neuen Tab an/aus, Zahl der Schnellwahl-Einträge, Links im neuen Tab, Löschen bestätigen (aus = mit Rückgängig, Ordner immer mit Nachfrage), Sicherungs-Hinweis nach 7/14/30 Tagen oder nie, Pomodoro-Standardlängen, Emoji-Raster für Live-Ordner und Lesezeichen.
+
 ## Datenschutz
 Alles bleibt im Browser (`storage.local`). Nichts wird an Dritte gesendet, außer du schaltest OpenRouter ein: dann gehen nur Tab-Titel und Domains an OpenRouter. Mit Ollama bleibt es auf deinem Rechner. Kein Konto, kein Lizenzschlüssel, keine Telemetrie.
 
