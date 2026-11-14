@@ -37,7 +37,7 @@ test('merge: alter Stand (v0.5.2) behält Werte, neue Optionen bekommen Standard
   const s = merge(alt).settings
   assert.equal(s.theme, 'dark'); assert.equal(s.accent, '#ff0000'); assert.equal(s.bg.type, 'preset'); assert.equal(s.bg.intensity, DEFAULT.settings.bg.intensity)
   assert.equal(s.pagebar.on, true); assert.equal(s.pagebar.exclude, 'bank.de'); assert.equal(s.pagebar.quick, 8)
-  assert.deepEqual(s.backup, { lastExport: 5, nagUntil: 9, nagDays: 14 })
+  assert.deepEqual(s.backup, { lastExport: 5, nagUntil: 9, nagDays: 14, folder: { on: false, device: '', keep: 5, lastWrite: 0 } })
   assert.equal(s.newtabBar, true); assert.equal(s.openInNewTab, false); assert.equal(s.confirmDelete, true); assert.deepEqual(s.pomo, { work: 25, brk: 5 })
   assert.deepEqual(merge({ settings: { pomo: { work: 50 } } }).settings.pomo, { work: 50, brk: 5 }) // verschachtelt ergänzt
 })
@@ -66,4 +66,12 @@ test('addWidget/removeWidget: Workspace ohne widgets, null-Eintrag', async () =>
   mem.pika.workspaces[0].widgets.unshift(null)
   assert.equal((await patchWidget('n', (w) => { w.n = 1 })).n, 1)
   await removeWidget('n'); assert.deepEqual(mem.pika.workspaces[0].widgets, [null])
+})
+
+test('backup.folder: Standardwerte, alte Stände ohne das Feld, tiefes merge', async () => {
+  const { merge } = await import('../lib/store.js')
+  assert.deepEqual(merge({}).settings.backup.folder, { on: false, device: '', keep: 5, lastWrite: 0 })
+  const alt = merge({ settings: { backup: { lastExport: 7, nagDays: 30 } } }).settings.backup
+  assert.equal(alt.lastExport, 7); assert.deepEqual(alt.folder, { on: false, device: '', keep: 5, lastWrite: 0 })
+  assert.deepEqual(merge({ settings: { backup: { folder: { on: true, device: 'pc' } } } }).settings.backup.folder, { on: true, device: 'pc', keep: 5, lastWrite: 0 })
 })
