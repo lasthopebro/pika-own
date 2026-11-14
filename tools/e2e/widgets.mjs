@@ -8,6 +8,7 @@ flow('widgets', async ({ ctx, ok, newtab, until }) => {
   const W = (t) => page.locator('.widget', { hasText: t })
   // Dialog „Widget hinzufügen“ (Mehr-Menü), Typ wählen, Felder füllen
   const add = async (type, fill) => {
+    const n = await page.locator('.widget').count()
     await page.locator('#top button[aria-label="Mehr"]').click()
     await page.locator('.ctx button', { hasText: 'Widget hinzufügen' }).click()
     await page.locator('dialog select').selectOption(type)
@@ -16,6 +17,8 @@ flow('widgets', async ({ ctx, ok, newtab, until }) => {
     await fill?.(page.locator('dialog'))
     await page.locator('dialog button.primary').click()
     await page.waitForSelector('dialog', { state: 'detached' })
+    // Der Dialog schließt vor dem Speichern; das Widget erscheint erst danach.
+    await page.waitForFunction((n) => document.querySelectorAll('.widget').length > n, n)
   }
   const stored = () => page.evaluate(async () => (await (await import('./lib/store.js')).load()).workspaces[0].widgets)
 
@@ -83,7 +86,7 @@ flow('widgets', async ({ ctx, ok, newtab, until }) => {
     const until = Date.now() + 800
     await update((S) => { S.workspaces[0].widgets.push({ id: 'pomo1', type: 'timer', minutes: 25, brk: 5, pomo: true, phase: 'work', until }) })
     chrome.alarms.create('timer|pomo1', { when: until })
-    await new Promise((r) => setTimeout(r, 3000))
+    for (const end = Date.now() + 15000; Date.now() < end; await new Promise((r) => setTimeout(r, 100))) if ((await load()).workspaces[0].widgets.find((x) => x.id === 'pomo1').phase === 'break') break
     const w = (await load()).workspaces[0].widgets.find((x) => x.id === 'pomo1')
     return { phase: w.phase, mins: Math.round((w.until - Date.now()) / 60e3) }
   })
