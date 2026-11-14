@@ -22,8 +22,8 @@ Regeln wie in `v08-widgets`: höchstens 2 Dateien und etwa 80 Zeilen je Task, am
 
 ## 5. Abschluss
 
-- [ ] 5.1 [günstig] `tools/e2e/gallery.mjs` (V öffnet, Ordner hinein, Esc hoch, Filter, Raster/Liste nach Neuladen) und Eintrag in `tools/e2e/run.mjs`. Prüfen: `node tools/e2e-chromium.mjs <Ordner ohne Leerzeichen>`.
-- [ ] 5.2 [günstig] `README.md` (Galerie), `CHANGELOG.md` 0.10.0, Version in `manifest.json`/`package.json`, `docs/FUNKTIONSLISTE.md` (Zeile Galerie auf „vorhanden“). Prüfen: `npm run lint`, `node tools/check-permissions.mjs`, `openspec validate v10-galerie`.
+- [x] 5.1 [günstig] `tools/e2e/gallery.mjs` (V öffnet, Ordner hinein, Esc hoch, Filter, Raster/Liste nach Neuladen) und Eintrag in `tools/e2e/run.mjs`. Prüfen: `node tools/e2e-chromium.mjs <Ordner ohne Leerzeichen>`.
+- [x] 5.2 [günstig] `README.md` (Galerie), `CHANGELOG.md` 0.10.0, Version in `manifest.json`/`package.json`, `docs/FUNKTIONSLISTE.md` (Zeile Galerie auf „vorhanden“). Prüfen: `npm run lint`, `node tools/check-permissions.mjs`, `openspec validate v10-galerie`.
 - [ ] 5.3 [stark] Review durch getrennten Prüfer (Tastatur, Screenreader-Namen), Handprüfung Brave und Firefox, CI grün, PR auf „Ready“.
 
 ## Handprüfpunkte
