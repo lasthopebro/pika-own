@@ -13,7 +13,7 @@ Regeln wie in `v08-widgets`: höchstens 2 Dateien und etwa 80 Zeilen je Task, am
 
 ## 3. Einstellungen
 
-- [ ] 3.1 [stark] `lib/store.js`: `settings.galleryMode` (`grid`), `settings.galleryDensity` (`m`) mit `merge` und Test in `test/store.test.js` (alte Stände). Prüfen: `npm test`.
+- [x] 3.1 [stark] `lib/store.js`: `settings.galleryMode` (`grid`), `settings.galleryDensity` (`m`) mit `merge` und Test in `test/store.test.js` (alte Stände). Prüfen: `npm test`.
 - [ ] 3.2 [günstig] `newtab.js` + `style.css`: Schalter Raster/Liste und Dichte in der Galerie-Leiste und in den Einstellungen (Abschnitt Board), über `update()`. Prüfen: Neu laden behält Wahl.
 
 ## 4. Ablageziele
