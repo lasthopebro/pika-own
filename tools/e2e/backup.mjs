@@ -18,7 +18,8 @@ flow('backup', async ({ ok, ctx, newtab, until, poll }) => {
   // OPFS-Helfer im Seitenkontext (CSP der Erweiterung erlaubt kein eval, daher je eine eigene Funktion)
   const names = () => page.evaluate(async () => { const d = await navigator.storage.getDirectory(), o = []; for await (const [n] of d.entries()) o.push(n); return o.sort() })
   const put = (name, text) => page.evaluate(async ([n, t]) => { const w = await (await (await navigator.storage.getDirectory()).getFileHandle(n, { create: true })).createWritable(); await w.write(t); await w.close() }, [name, text])
-  const read = (name) => page.evaluate(async (n) => (await (await (await navigator.storage.getDirectory()).getFileHandle(n)).getFile()).text(), name)
+  // Während die App die Datei ersetzt, kann das Lesen kurz scheitern: dann leer, der Aufrufer fragt per poll erneut
+  const read = (name) => page.evaluate(async (n) => { try { return await (await (await (await navigator.storage.getDirectory()).getFileHandle(n)).getFile()).text() } catch { return '' } }, name)
   const wipeFolder = () => page.evaluate(async () => { const d = await navigator.storage.getDirectory(); for await (const [n] of d.entries()) await d.removeEntry(n) })
 
   // --- Karte bei frischem Profil
@@ -60,6 +61,7 @@ flow('backup', async ({ ok, ctx, newtab, until, poll }) => {
   await set.locator('button', { hasText: 'Ordner wählen' }).click()
   const today = `pika-geraet-${day()}.json`
   ok(await poll(async () => (await names()).includes(today)), 'Ordner gewählt: Tagesdatei ' + today + ' liegt im Ordner')
+  await poll(async () => (await names()).filter((n) => /^pika-geraet-\d{8}\.json$/.test(n)).length <= 5) // Aufräumen folgt dem Schreiben
   const left = await names()
   ok(left.filter((n) => /^pika-geraet-\d{8}\.json$/.test(n)).length === 5 && !left.includes('pika-geraet-20260101.json') && !left.includes('pika-geraet-20260102.json'), 'Nur die 5 neuesten eigenen Dateien bleiben: ' + left.join(','))
   ok(left.includes('urlaub.jpg') && left.includes('pika-anderes-20250101.json'), 'Fremde Dateien bleiben (urlaub.jpg, anderes Gerät)')
@@ -68,7 +70,9 @@ flow('backup', async ({ ok, ctx, newtab, until, poll }) => {
   ok(await until(page, () => /aktiv, letzte Sicherung/.test(document.querySelector('dialog .muted')?.textContent || '')), 'Status zeigt „Ordner … aktiv, letzte Sicherung …“')
   const st = await page.evaluate(() => chrome.storage.local.get('pika').then((r) => r.pika.settings.backup))
   ok(st.folder.on && st.folder.lastWrite > 0 && st.lastExport === st.folder.lastWrite, 'Einstellung: on, lastWrite und lastExport gesetzt')
-  await page.keyboard.press('Escape'); await page.waitForSelector('dialog', { state: 'detached' })
+  // „Speichern“ ohne die Checkbox anzuhaken darf die Ordnerwahl nicht zurücksetzen
+  await set.locator('button', { hasText: 'Speichern' }).click(); await page.waitForSelector('dialog', { state: 'detached' })
+  ok(await poll(async () => (await page.evaluate(() => chrome.storage.local.get('pika').then((r) => r.pika.settings.backup.folder.on))) === true), 'Ordner gewählt + Speichern: backup.folder.on bleibt true')
 
   // Hinweis schweigt, Ordnerdatei nur einmal je Tag
   await page.reload(); await page.waitForSelector('#top button')

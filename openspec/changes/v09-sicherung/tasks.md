@@ -24,7 +24,7 @@ Regeln wie in `v08-widgets`: höchstens 2 Dateien und etwa 80 Zeilen je Task, am
 ## 5. Abschluss
 
 - [x] 5.1 [günstig] `README.md` (Sicherung), `CHANGELOG.md` 0.9.0, Version in `manifest.json`/`package.json`; `tools/e2e/backup.mjs` (Datei-Wahl-Weg der Karte, ohne Ordnerdialog) und Eintrag in `tools/e2e/run.mjs`. Prüfen: `npm run lint`, `node tools/check-permissions.mjs` (keine neue Berechtigung), `openspec validate v09-sicherung`.
-- [ ] 5.2 [stark] Review durch getrennten Prüfer (Dateizugriff, Löschlogik, Schlüssel nicht in der Datei), Handprüfung Brave und Firefox, CI grün, PR auf „Ready“.
+- [x] 5.2 [stark] Review durch getrennten Prüfer (Dateizugriff, Löschlogik, Schlüssel nicht in der Datei), Handprüfung Brave und Firefox, CI grün, PR auf „Ready“.
 
 ## Handprüfpunkte
 

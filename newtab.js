@@ -7,7 +7,7 @@ import { loadItems } from './lib/dials.js'
 import { treeToFolders, importFolders, barOf } from './lib/seed.js'
 import { saveBackup, listBackups, makeExport, isBackup, restore } from './lib/backup.js'
 import * as bf from './lib/backup-folder.js'
-import { fileName, toDelete, dayKey, isFreshProfile } from './lib/backup-plan.js'
+import { fileName, toDelete, dayKey, isFreshProfile, checkSize } from './lib/backup-plan.js'
 import { openTabs, saveSession, openSession } from './lib/sessions.js'
 import * as ai from './lib/ai.js'
 import * as ollama from './lib/ollama.js'
@@ -695,9 +695,10 @@ function settingsDlg() {
     const granted = (await bf.access(dirH)) === 'granted'
     folderStat.textContent = `Ordner „${dirH.name}“ ${f.on ? 'aktiv' : 'aus'}, ${f.lastWrite ? 'letzte Sicherung ' + new Date(f.lastWrite).toLocaleString('de-DE') : 'noch keine Sicherung'}${granted ? '' : '. Zugriff erneuern nötig'}`
   }
+  let picked = false // Ordner im offenen Dialog gewählt: „Speichern“ darf on nicht wieder auf die alte Checkbox zurücksetzen
   const pickFolder = async () => {
     let d; try { d = await bf.pick() } catch { return } // Abbruch im Ordnerdialog
-    dirH = d; await bf.saveHandle(d); S.settings.backup.folder.on = true; await persist(); await folderBackup(true); paint()
+    dirH = d; await bf.saveHandle(d); S.settings.backup.folder.on = true; picked = true; await persist(); await folderBackup(true); paint()
   }
   const folderNow = async () => {
     if (!dirH) return toast('Zuerst einen Ordner wählen')
@@ -757,7 +758,7 @@ function settingsDlg() {
     pb.quick = Number.isFinite(v.quick) ? Math.min(20, Math.max(0, Math.round(v.quick))) : 8
     s.pomo = { work: Math.max(1, Math.round(v.pomoWork) || 25), brk: Math.max(1, Math.round(v.pomoBrk) || 5) }
     s.backup.nagDays = [0, 7, 14, 30].includes(Number(v.nagDays)) ? Number(v.nagDays) : 14
-    if (v.device !== undefined) Object.assign(s.backup.folder, { device: v.device.trim(), on: v.folderOn && !!dirH })
+    if (v.device !== undefined) Object.assign(s.backup.folder, { device: v.device.trim(), on: (picked || v.folderOn) && !!dirH })
     Object.assign(bg, { type: v.bgType, preset: v.preset, c1: v.c1, c2: v.c2, intensity: v.intensity, grain: v.grain, parallax: v.parallax })
     await persist(); await applyLook(); syncNewtabBar(); render()
   })
@@ -811,10 +812,15 @@ async function folderBackup(ask) {
   try {
     await bf.writeSnapshot(dirH, fileName(f.device, now), JSON.stringify(await makeExport()))
     await bf.prune(dirH, toDelete((await bf.listSnapshots(dirH)).map((x) => x.name), f.device, f.keep))
-  } catch (e) { toast('Sicherung in den Ordner fehlgeschlagen: ' + e.message); return 'error' } // lastWrite bleibt: der nächste Neue Tab versucht es erneut
+  } catch (e) { if (ask) toast('Sicherung in den Ordner fehlgeschlagen: ' + e.message); else errToastOnce(e); return 'error' } // lastWrite bleibt: der nächste Neue Tab versucht es erneut
   f.lastWrite = now; S.settings.backup.lastExport = now // so schweigt der Hinweis auf eine Sicherungsdatei
   await persist(); renderNag()
   return 'granted'
+}
+// Fehlerhinweis höchstens einmal je Tag; der Schreibversuch läuft trotzdem bei jedem Neuen Tab.
+function errToastOnce(e) {
+  try { if (localStorage.getItem('pika_folderErr') === dayKey(Date.now())) return; localStorage.setItem('pika_folderErr', dayKey(Date.now())) } catch {}
+  toast('Sicherung in den Ordner fehlgeschlagen: ' + e.message)
 }
 async function folderStart() {
   if (!bf.supported()) return
@@ -825,7 +831,7 @@ async function folderStart() {
 // Karte „Sicherung wiederherstellen“ (frisches Profil): Datei wählen (alle Browser) oder aus dem Sicherungsordner (Chromium).
 const restoreCard = () => {
   const file = h('input', { type: 'file', accept: 'application/json', hidden: true, onchange: async (e) => {
-    try { await restoreFlow(JSON.parse(await e.target.files[0].text())) } catch (err) { toast('Import fehlgeschlagen: ' + err.message) }
+    try { const f = e.target.files[0]; checkSize(f.size); await restoreFlow(JSON.parse(await f.text())) } catch (err) { toast('Import fehlgeschlagen: ' + err.message) }
   } })
   const b = S.settings.backup
   return h('div', { class: 'nag', 'data-restore': '1' }, h('span', {}, 'Sicherung wiederherstellen: Board, Einstellungen und fehlende Lesezeichen aus einer Sicherung zurückholen.'), file,
