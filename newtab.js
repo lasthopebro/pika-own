@@ -5,7 +5,9 @@ import { h, toast, menu, dialog, ask, tile } from './lib/ui.js'
 import { domainOf, groupHistory, renameName, parseAiTopics, score, parseBars, barsToText } from './lib/logic.js'
 import { loadItems } from './lib/dials.js'
 import { treeToFolders, importFolders, barOf } from './lib/seed.js'
-import { saveBackup, listBackups, makeBackup, restore } from './lib/backup.js'
+import { saveBackup, listBackups, makeExport, isBackup, restore } from './lib/backup.js'
+import * as bf from './lib/backup-folder.js'
+import { fileName, toDelete, dayKey, isFreshProfile } from './lib/backup-plan.js'
 import { openTabs, saveSession, openSession } from './lib/sessions.js'
 import * as ai from './lib/ai.js'
 import * as ollama from './lib/ollama.js'
@@ -686,6 +688,24 @@ function settingsDlg() {
     e.target.textContent = pb.on ? 'Leiste auf Webseiten ausschalten' : 'Leiste auf Webseiten einschalten …'
     toast(pb.on ? 'Leiste auf Webseiten an (geöffnete Seiten neu laden)' : 'Leiste auf Webseiten aus')
   })()
+  const folderStat = h('p', { class: 'muted' })
+  const paint = async () => {
+    const f = S.settings.backup.folder
+    if (!dirH) return void (folderStat.textContent = 'Kein Ordner gewählt.')
+    const granted = (await bf.access(dirH)) === 'granted'
+    folderStat.textContent = `Ordner „${dirH.name}“ ${f.on ? 'aktiv' : 'aus'}, ${f.lastWrite ? 'letzte Sicherung ' + new Date(f.lastWrite).toLocaleString('de-DE') : 'noch keine Sicherung'}${granted ? '' : '. Zugriff erneuern nötig'}`
+  }
+  const pickFolder = async () => {
+    let d; try { d = await bf.pick() } catch { return } // Abbruch im Ordnerdialog
+    dirH = d; await bf.saveHandle(d); S.settings.backup.folder.on = true; await persist(); await folderBackup(true); paint()
+  }
+  const folderNow = async () => {
+    if (!dirH) return toast('Zuerst einen Ordner wählen')
+    const r = await folderBackup(true)
+    if (r === 'granted') toast('In den Ordner gesichert'); else if (r !== 'error') toast('Kein Zugriff auf den Ordner, bitte „Ordner wählen“')
+    paint()
+  }
+  paint()
   ask('Einstellungen', [
     { section: 'Aussehen' },
     { name: 'theme', label: 'Design', type: 'select', value: s.theme, options: [['system', 'System'], ['light', 'Hell'], ['dark', 'Dunkel']] },
@@ -719,6 +739,13 @@ function settingsDlg() {
     { section: 'Sicherung' },
     { name: 'nagDays', label: 'Hinweis auf Sicherungsdatei', type: 'select', value: s.backup.nagDays, options: [[7, 'nach 7 Tagen'], [14, 'nach 14 Tagen'], [30, 'nach 30 Tagen'], [0, 'nie']] },
     act('Sicherungen Backup', 'Sicherungen …', backupsDlg),
+    ...(bf.supported() ? [{ section: 'Sicherungsordner' },
+      { name: 'folderOn', label: 'Täglich in den Ordner sichern', type: 'checkbox', value: s.backup.folder.on },
+      { name: 'device', label: 'Gerätename (steckt im Dateinamen)', value: s.backup.folder.device || 'geraet' },
+      { label: 'Sicherungsordner Status', node: folderStat },
+      act('Sicherungsordner wählen', 'Ordner wählen …', pickFolder),
+      act('Sicherungsordner Zugriff erneuern', 'Zugriff erneuern', folderNow),
+      act('Sicherungsordner jetzt sichern', 'Jetzt in Ordner sichern', folderNow)] : []),
     { section: 'KI' },
     act('KI Ollama OpenRouter Modell Anbieter', 'KI-Einstellungen …', aiDlg),
     { section: 'Datenschutz' },
@@ -730,6 +757,7 @@ function settingsDlg() {
     pb.quick = Number.isFinite(v.quick) ? Math.min(20, Math.max(0, Math.round(v.quick))) : 8
     s.pomo = { work: Math.max(1, Math.round(v.pomoWork) || 25), brk: Math.max(1, Math.round(v.pomoBrk) || 5) }
     s.backup.nagDays = [0, 7, 14, 30].includes(Number(v.nagDays)) ? Number(v.nagDays) : 14
+    if (v.device !== undefined) Object.assign(s.backup.folder, { device: v.device.trim(), on: v.folderOn && !!dirH })
     Object.assign(bg, { type: v.bgType, preset: v.preset, c1: v.c1, c2: v.c2, intensity: v.intensity, grain: v.grain, parallax: v.parallax })
     await persist(); await applyLook(); syncNewtabBar(); render()
   })
@@ -740,17 +768,20 @@ async function barsDlg() {
   S.settings.bars = parseBars(v.t)
   await persist(); renderBars()
 }
+// Sicherung einspielen (aus Liste, Datei oder Ordner): erst prüfen, dann bestätigen, dann restore().
+async function restoreFlow(b) {
+  if (!isBackup(b)) throw new Error('Keine gültige pika-own-Sicherung')
+  if (!confirm('Einstellungen ersetzen und fehlende Lesezeichen neu anlegen? (Vorhandene Lesezeichen werden nicht gelöscht)')) return
+  importing = true
+  try { const r = await restore(b); toast(`Wiederhergestellt, ${r.added} Lesezeichen ergänzt`) } finally { importing = false }
+  setTimeout(() => location.reload(), 800)
+}
 async function backupsDlg() {
   const body = h('div', { class: 'list' })
   const file = h('input', { type: 'file', accept: 'application/json', hidden: true, onchange: async (e) => {
     try { await doRestore(JSON.parse(await e.target.files[0].text())) } catch (err) { toast('Import fehlgeschlagen: ' + err.message) }
   } })
-  const doRestore = async (b) => {
-    if (!confirm('Einstellungen ersetzen und fehlende Lesezeichen neu anlegen? (Vorhandene Lesezeichen werden nicht gelöscht)')) return
-    importing = true
-    try { const r = await restore(b); toast(`Wiederhergestellt, ${r.added} Lesezeichen ergänzt`) } finally { importing = false }
-    setTimeout(() => location.reload(), 800)
-  }
+  const doRestore = restoreFlow
   const draw = async () => {
     const l = await listBackups()
     body.replaceChildren(file, ...(l.length ? l.map((b) => h('div', { class: 'lrow' }, h('span', {}, new Date(b.ts).toLocaleString('de-DE') + ` · ${b.folders.reduce((a, f) => a + f.items.length, 0)} Lesezeichen`), h('button', { onclick: () => doRestore(b) }, 'Wiederherstellen'))) : [h('p', { class: 'muted' }, 'Noch keine Sicherung. Täglich automatisch, die letzten 7 bleiben.')]))
@@ -763,15 +794,59 @@ async function backupsDlg() {
 }
 // Datei-Kopie außerhalb des Profils; merkt sich das Datum für den Hinweis.
 async function exportBackup() {
-  const b = await makeBackup()
-  b.state.settings.ai.orKey = '' // die Datei verlässt den Browser: kein API-Schlüssel darin
+  const b = await makeExport() // ohne API-Schlüssel
   const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(b)], { type: 'application/json' })), download: `pika-own-backup-${new Date().toISOString().slice(0, 10)}.json` })
   a.click()
   S.settings.backup.lastExport = Date.now(); await persist(); renderNag()
 }
+/* ---------- Sicherungsordner (nur Chromium) ---------- */
+let dirH = null, folderPrompt = false // Handle aus IndexedDB; Zugriff nach Neustart abgelaufen
+// Schreibt die Tagesdatei und räumt eigene Altdateien auf. ask=true nur aus einem Klick. 'granted' | 'prompt' | 'denied' | 'error' | 'none'
+async function folderBackup(ask) {
+  if (!dirH) return 'none'
+  const p = await bf.access(dirH, ask)
+  folderPrompt = p === 'prompt'; renderNag()
+  if (p !== 'granted') return p
+  const f = S.settings.backup.folder, now = Date.now()
+  try {
+    await bf.writeSnapshot(dirH, fileName(f.device, now), JSON.stringify(await makeExport()))
+    await bf.prune(dirH, toDelete((await bf.listSnapshots(dirH)).map((x) => x.name), f.device, f.keep))
+  } catch (e) { toast('Sicherung in den Ordner fehlgeschlagen: ' + e.message); return 'error' } // lastWrite bleibt: der nächste Neue Tab versucht es erneut
+  f.lastWrite = now; S.settings.backup.lastExport = now // so schweigt der Hinweis auf eine Sicherungsdatei
+  await persist(); renderNag()
+  return 'granted'
+}
+async function folderStart() {
+  if (!bf.supported()) return
+  dirH = await bf.loadHandle().catch(() => null)
+  const f = S.settings.backup.folder
+  if (f.on && dirH && dayKey(f.lastWrite) !== dayKey(Date.now())) await folderBackup(false)
+}
+// Karte „Sicherung wiederherstellen“ (frisches Profil): Datei wählen (alle Browser) oder aus dem Sicherungsordner (Chromium).
+const restoreCard = () => {
+  const file = h('input', { type: 'file', accept: 'application/json', hidden: true, onchange: async (e) => {
+    try { await restoreFlow(JSON.parse(await e.target.files[0].text())) } catch (err) { toast('Import fehlgeschlagen: ' + err.message) }
+  } })
+  const b = S.settings.backup
+  return h('div', { class: 'nag', 'data-restore': '1' }, h('span', {}, 'Sicherung wiederherstellen: Board, Einstellungen und fehlende Lesezeichen aus einer Sicherung zurückholen.'), file,
+    ...(bf.supported() ? [h('button', { onclick: folderRestoreDlg }, 'Aus Sicherungsordner')] : []),
+    h('button', { class: 'primary', onclick: () => file.click() }, 'Datei wählen'),
+    h('button', { title: 'Karte 14 Tage nicht mehr zeigen', onclick: async () => { b.nagUntil = Date.now() + NAG_MS; await persist(); renderNag() } }, 'Später'))
+}
+async function folderRestoreDlg() {
+  let d = dirH
+  try { d ||= await bf.pick(); if ((await bf.access(d, true)) !== 'granted') return toast('Kein Zugriff auf den Ordner') } catch { return } // Abbruch im Ordnerdialog
+  const l = await bf.listSnapshots(d)
+  const body = h('div', { class: 'list' }, l.length ? l.map((x) => h('div', { class: 'lrow' }, h('span', {}, `${x.name} · ${new Date(x.ts).toLocaleString('de-DE')}`),
+    h('button', { onclick: async () => { try { await restoreFlow(await bf.readSnapshot(d, x.name)) } catch (err) { toast('Import fehlgeschlagen: ' + err.message) } } }, 'Einspielen'))) : h('p', { class: 'muted' }, 'Keine Sicherungsdateien im Ordner.'))
+  dialog('Aus Sicherungsordner', body)
+}
 function renderNag() {
   const b = S.settings.backup
-  $('nag').replaceChildren(...(backupNagDue(b, Date.now()) ? [h('div', { class: 'nag' },
+  const card = Date.now() >= (b.nagUntil || 0) && isFreshProfile(countUrls(T[0]), S)
+  $('nag').replaceChildren(...(folderPrompt ? [h('div', { class: 'nag' }, h('span', {}, 'Sicherungsordner: Der Browser will den Zugriff nach dem Neustart erneut bestätigen.'),
+    h('button', { class: 'primary', onclick: () => folderBackup(true) }, 'Zugriff erneuern'))] : []),
+    ...(card ? [restoreCard()] : backupNagDue(b, Date.now()) ? [h('div', { class: 'nag' },
     h('span', {}, b.lastExport ? `Letzte Sicherungsdatei vom ${new Date(b.lastExport).toLocaleDateString('de-DE')}. ` : 'Noch keine Sicherungsdatei außerhalb des Browsers. ', 'Geht das Profil verloren, sind sonst auch die Sicherungen weg.'),
     h('button', { class: 'primary', onclick: exportBackup }, 'Jetzt exportieren'),
     h('button', { title: 'Hinweis 14 Tage nicht mehr zeigen', onclick: async () => { b.nagUntil = Date.now() + NAG_MS; await persist(); renderNag() } }, 'Später'))] : []))
@@ -817,6 +892,7 @@ B.storage.onChanged.addListener(async (ch, area) => {
   histItems = await loadItems()
   renderBars(); renderResume(); if (S.settings.discover) renderBoard()
   syncNewtabBar()
+  folderStart() // nicht abwarten: das Board steht schon
   if (location.hash === '#ai') aiDlg()
   for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved']) B.bookmarks[ev].addListener(reloadSoon)
 })()
