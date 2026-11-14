@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process'; import path from 'node:path'; im
 const dir = path.dirname(fileURLToPath(import.meta.url))
 const [ext, ...only] = process.argv.slice(2)
 if (!ext) { console.error('Aufruf: node tools/e2e/run.mjs <Erweiterungsordner> [ablauf ...]'); process.exit(2) }
-const ALL = ['board', 'bar', 'ai', 'capture', 'widgets', 'backup', 'gallery']
+const ALL = ['board', 'bar', 'ai', 'capture', 'widgets', 'backup', 'gallery', 'tour']
 const rows = []
 for (const name of only.length ? only : ALL) {
   console.log(`\n### Ablauf ${name}`)

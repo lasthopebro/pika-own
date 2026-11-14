@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { urlsFromText, timerLeft, timerNext, backupNagDue, NAG_MS, absorb } from '../lib/quick.js'
+import { urlsFromText, timerLeft, timerNext, backupNagDue, NAG_MS, absorb, canon } from '../lib/quick.js'
 
 test('absorb: übernimmt fremde Sitzungen, Timer und erledigte Erinnerungen, behält lokale Änderungen', () => {
   const S = { sessions: [], lf: [], snapshots: [], settings: { theme: 'dark', pagebar: { collapsed: false } },
@@ -70,4 +70,11 @@ test('backupNagDue: Abstand 7/14/30 Tage oder nie', () => {
   assert.equal(at(10, 14), false); assert.equal(at(15, 14), true); assert.equal(at(15, undefined), true) // alter Stand: 14
   assert.equal(at(20, 30), false); assert.equal(at(31, 30), true)
   assert.equal(backupNagDue({ lastExport: 0, nagDays: 0 }, now), false) // nie, auch ohne Export
+})
+
+test('canon: gleicher Inhalt in anderer Schlüsselreihenfolge ist derselbe Text, anderer Inhalt nicht', () => {
+  const a = { b: 1, a: { y: [1, { q: 1, p: 2 }], x: null } }, b = { a: { x: null, y: [1, { p: 2, q: 1 }] }, b: 1 }
+  assert.equal(canon(a), canon(b))
+  assert.notEqual(canon(a), canon({ ...b, b: 2 }))
+  assert.notEqual(canon({ l: [1, 2] }), canon({ l: [2, 1] })) // Reihenfolge von Listen bleibt
 })

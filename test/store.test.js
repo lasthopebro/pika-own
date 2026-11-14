@@ -86,3 +86,12 @@ test('backup.folder: Standardwerte, alte Stände ohne das Feld, tiefes merge', a
   assert.equal(alt.lastExport, 7); assert.deepEqual(alt.folder, { on: false, device: '', keep: 5, lastWrite: 0 })
   assert.deepEqual(merge({ settings: { backup: { folder: { on: true, device: 'pc' } } } }).settings.backup.folder, { on: true, device: 'pc', keep: 5, lastWrite: 0 })
 })
+
+test('tourDone/emptyCol: Standard bei alten Ständen, gesetzte Werte bleiben, merge ist wiederholbar', async () => {
+  const { merge, DEFAULT } = await import('../lib/store.js')
+  assert.equal(DEFAULT.settings.tourDone, false); assert.equal(DEFAULT.settings.emptyCol, false)
+  const alt = merge({ settings: { theme: 'dark' } }).settings
+  assert.equal(alt.tourDone, false); assert.equal(alt.emptyCol, false)
+  const neu = merge(merge({ settings: { tourDone: true, emptyCol: true } })).settings
+  assert.equal(neu.tourDone, true); assert.equal(neu.emptyCol, true)
+})

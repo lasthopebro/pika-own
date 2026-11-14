@@ -13,9 +13,10 @@ import * as ai from './lib/ai.js'
 import * as ollama from './lib/ollama.js'
 import { resumeCards } from './lib/resume.js'
 import { trashAdd, restoreParent, findDupes, discovery, mdLink } from './lib/board.js'
-import { urlsFromText, backupNagDue, NAG_MS, absorb } from './lib/quick.js'
+import { urlsFromText, backupNagDue, NAG_MS, absorb, canon } from './lib/quick.js'
 import { WIDGETS } from './widgets/index.js'
 import { cleanPath, crumbs, children, filterChildren, up, pathTo, folderList } from './lib/gallery.js'
+import { runTour } from './lib/tour-ui.js'
 
 let S, T, histItems = [], filterTag = '', selMode = false, focus = null, drag = null, importing = false
 const own = new Set() // selbst geschriebene Stände (JSON), damit deren Änderungsereignis nicht neu lädt
@@ -23,7 +24,7 @@ const byId = new Map()
 const sel = new Set()
 const $ = (id) => document.getElementById(id)
 // lf/snapshots schreiben auch Hintergrund und Leiste: nie mit altem Stand überschreiben. own = zuletzt selbst geschrieben.
-const remember = (st) => { if (own.size > 20) own.clear(); own.add(JSON.stringify(st)) }
+const remember = (st) => { if (own.size > 20) own.clear(); own.add(canon(st)) }
 // Widgets schreiben nur über patchWidget/addWidget/removeWidget; persist() übernimmt deren gespeicherten Stand (in die vorhandenen Objekte, damit offene Widgets aktuell bleiben).
 const persist = () => update((cur) => {
   const stored = new Map(cur.workspaces.map((x) => [x.id, x.widgets])), local = new Map(S.workspaces.flatMap((x) => x.widgets || []).map((w) => [w?.id, w]))
@@ -644,7 +645,7 @@ function renderSelBar() {
 function palette() {
   const ACTIONS = [
     ['Auswahlmodus', toggleSel], ['Board / Galerie wechseln', toggleView], ['KI: Tabs nach Themen', aiDlg], ['Tab-Sitzungen', sessionsDlg],
-    ['Papierkorb', trashDlg], ['Dubletten finden', dupesDlg],
+    ['Papierkorb', trashDlg], ['Dubletten finden', dupesDlg], ['Tour (Erste Schritte)', tourStart],
     ['Einstellungen', settingsDlg], ['Neuer Workspace', newWs], ['Widget hinzufügen', addWidget],
     ['Sicherung jetzt erstellen', async () => { await saveBackup(); toast('Gesichert') }], ['Tag-Filter aufheben', () => { filterTag = ''; render() }],
   ]
@@ -687,13 +688,24 @@ addEventListener('keydown', (e) => {
   else if (k === 'escape') { if (selMode) toggleSel(); else if (focus) { focus = null; renderBoard() } else if (filterTag) { filterTag = ''; renderTags(); renderBoard() } }
 })
 
+/* ---------- Tour ---------- */
+// Beim ersten Start automatisch (settings.tourDone), sonst über die Palette. Ende, Überspringen und Esc merken sich "gesehen" nur in diesem einen Feld.
+function tourStart() {
+  if (document.querySelector('dialog[open]')) return
+  if (gal) galClose()
+  runTour(() => {
+    S.settings.tourDone = true
+    update((cur) => { cur.settings.tourDone = true; remember(cur) })
+  })
+}
+
 /* ---------- Tastenkürzel ---------- */
 async function keysDlg() {
   const cmds = ((await B.commands?.getAll?.().catch(() => [])) || []).filter((c) => c.description)
   const table = (rows) => h('table', { class: 'keys' }, rows.map(([k, d]) => h('tr', {}, h('td', {}, h('kbd', {}, k)), h('td', {}, d))))
   dialog('Tastenkürzel', h('div', {},
     h('h4', {}, 'Im Neuen Tab'),
-    table([['F', 'Suche'], ['S', 'Auswahlmodus'], ['V', 'Galerie öffnen / schließen'], ['N', 'Neuer Workspace'], ['?', 'Diese Übersicht'], ['Esc', 'Auswahl, Ausschnitt oder Tag-Filter zurücksetzen; in der Galerie: Suchfeld leeren, eine Ebene hoch, zurück zum Board'], ['/', 'Suchfeld im Einstellungsdialog'], ['Pfeile, Pos1, Ende, Enter, Esc', 'in jedem Menü']]),
+    table([['F', 'Suche'], ['S', 'Auswahlmodus'], ['V', 'Galerie öffnen / schließen'], ['N', 'Neuer Workspace'], ['?', 'Diese Übersicht'], ['Esc', 'Auswahl, Ausschnitt oder Tag-Filter zurücksetzen; in der Galerie: Suchfeld leeren, eine Ebene hoch, zurück zum Board'], ['/', 'Suchfeld im Einstellungsdialog'], ['F, dann > Tour', 'Erste Schritte noch einmal zeigen'], ['Pfeile, Pos1, Ende, Enter, Esc', 'in jedem Menü']]),
     h('h4', {}, 'Im Browser'),
     table(cmds.map((c) => [c.shortcut || 'nicht belegt', c.description])),
     h('p', { class: 'muted' }, 'Die Browser-Kürzel änderst du in Chrome, Brave und Edge unter chrome://extensions/shortcuts, in Firefox unter about:addons (Zahnrad, „Tastenkürzel verwalten“).')))
@@ -1020,7 +1032,7 @@ const typing = () => [...document.querySelectorAll('#widgets [data-wid]')].some(
 })
 B.storage.onChanged.addListener(async (ch, area) => {
   const nv = ch.pika?.newValue
-  if (area !== 'local' || !nv || !S || own.delete(JSON.stringify(nv))) return
+  if (area !== 'local' || !nv || !S || own.delete(canon(nv))) return
   if (document.querySelector('dialog[open]') || drag || typing()) return absorb(S, nv, Date.now())
   S = await load(); render()
 })
@@ -1029,6 +1041,7 @@ B.storage.onChanged.addListener(async (ch, area) => {
   T = await B.bookmarks.getTree(); index()
   await applyLook()
   render()
+  if (!S.settings.tourDone && !location.hash) tourStart() // gleich nach dem ersten Zeichnen, damit niemand schon tippt
   histItems = await loadItems()
   renderBars(); renderResume(); if (S.settings.discover) renderBoard()
   syncNewtabBar()

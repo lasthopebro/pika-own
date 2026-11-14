@@ -4,8 +4,8 @@ Regeln wie in `v08-widgets`: höchstens 2 Dateien und etwa 80 Zeilen je Task, am
 
 ## 1. Tour
 
-- [ ] 1.1 [günstig] `lib/tour.js`: `STEPS` (5 Schritte mit Selektor, Titel, Satz) und `next(i, steps, exists)` plus `test/tour.test.js` (fehlendes Ziel wird übersprungen, Ende liefert `null`, kein Schritt → sofort `null`). Prüfen: `npm test`.
-- [ ] 1.2 [günstig] `newtab.js` + `style.css`: Overlay mit Hervorhebung, „Weiter“, „Überspringen“, Esc; automatisch beim ersten Start (`settings.tourDone` fehlt), setzt den Merker über `update()`; Palette-Eintrag „Tour“ und Zeile in der `?`-Übersicht. Prüfen: Handprüfung (neues Profil: Tour erscheint; Esc: kommt nicht wieder; Palette: wieder da).
+- [x] 1.1 [günstig] `lib/tour.js`: `STEPS` (5 Schritte mit Selektor, Titel, Satz) und `next(i, steps, exists)` plus `test/tour.test.js` (fehlendes Ziel wird übersprungen, Ende liefert `null`, kein Schritt → sofort `null`). Prüfen: `npm test`.
+- [x] 1.2 [günstig] `newtab.js` + `style.css`: Overlay mit Hervorhebung, „Weiter“, „Überspringen“, Esc; automatisch beim ersten Start (`settings.tourDone` fehlt), setzt den Merker über `update()`; Palette-Eintrag „Tour“ und Zeile in der `?`-Übersicht. Prüfen: Handprüfung (neues Profil: Tour erscheint; Esc: kommt nicht wieder; Palette: wieder da).
 
 ## 2. Berechtigungsseite
 
