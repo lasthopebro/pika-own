@@ -68,6 +68,17 @@ test('addWidget/removeWidget: Workspace ohne widgets, null-Eintrag', async () =>
   await removeWidget('n'); assert.deepEqual(mem.pika.workspaces[0].widgets, [null])
 })
 
+test('galleryMode/galleryDensity: Standard bei alten Ständen, gültige Werte bleiben, ungültige fallen zurück', async () => {
+  const { merge } = await import('../lib/store.js')
+  const d = merge({ settings: { theme: 'dark' } }).settings
+  assert.equal(d.galleryMode, 'grid'); assert.equal(d.galleryDensity, 'm')
+  const l = merge({ settings: { galleryMode: 'list', galleryDensity: 's' } }).settings
+  assert.equal(l.galleryMode, 'list'); assert.equal(l.galleryDensity, 's')
+  const bad = merge({ settings: { galleryMode: 'x', galleryDensity: 'xl' } }).settings
+  assert.equal(bad.galleryMode, 'grid'); assert.equal(bad.galleryDensity, 'm')
+  assert.equal(merge(merge({ settings: { galleryMode: 'list' } })).settings.galleryMode, 'list') // wiederholbar
+})
+
 test('backup.folder: Standardwerte, alte Stände ohne das Feld, tiefes merge', async () => {
   const { merge } = await import('../lib/store.js')
   assert.deepEqual(merge({}).settings.backup.folder, { on: false, device: '', keep: 5, lastWrite: 0 })

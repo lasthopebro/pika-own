@@ -38,6 +38,14 @@ Mehr → Widget hinzufügen. Alle Widgets arbeiten lokal, ohne Konto und ohne zu
 - **Todo:** Text eintippen, Enter; optional Fälligkeit (Datum und Uhrzeit) davor wählen. Überfällige Punkte stehen oben und sind rot, erledigte unten. Zur Fälligkeit erscheint genau eine Systembenachrichtigung, auch bei geschlossenem Neuen Tab (nach einem Browserstart werden verpasste nachgeholt).
 - **Fotorahmen:** bis zu 6 Bild-Adressen (nur `https:`), eine pro Zeile, Wechselzeit (Standard 30 s), Einpassen oder Füllen; Stift = bearbeiten. Gespeichert werden nur die Adressen. Der Server, der ein Bild ausliefert, sieht deine IP-Adresse und den Zeitpunkt.
 
+## Galerie (v0.10)
+Taste `V` oder Kopf-Knopf „Board / Galerie“ öffnet das Vollbild, `V` oder `Esc` auf Home schließt es.
+- **Navigation:** Home zeigt die Spalten des Workspace als Ordner-Kacheln; Klick (oder Enter) geht hinein. Der Pfad (Home › Ordner › Unterordner) ist anklickbar. `Esc` leert zuerst das Suchfeld, geht dann eine Ebene hoch (Fokus auf die verlassene Kachel) und auf Home zurück zum Board.
+- **Suche je Ordner:** Das Feld filtert die Kacheln des gezeigten Ordners nach Titel und Adresse. Pfeil runter springt auf die Kacheln, Enter öffnet den ersten Treffer, Pfeiltasten bewegen sich durch die Kacheln. Palette `F` → `/Name` springt in der Galerie in den Ordner.
+- **Raster oder Liste, Dichte S/M/L:** in der Galerie-Leiste oder unter Einstellungen → Board; bleibt nach Neuladen erhalten. Bei mehr als 300 Einträgen im Ordner erscheint „Mehr zeigen“.
+- **Ablegen:** Kachel auf einen Ordner links oder auf eine Ordner-Kachel ziehen verschiebt das Lesezeichen; „Rückgängig“ in der Meldung stellt es zurück.
+- Die Raster-Ansicht der Spalten im Board (Einstellungen → Ansicht → Spalten-Raster) bleibt unverändert. Keine neue Berechtigung.
+
 ## Eigenes Widget bauen (v0.7)
 Ein Widget ist eine Datei `widgets/<typ>.js` mit einem Standard-Export und ein Eintrag in `widgets/index.js`; `newtab.js` bleibt unberührt.
 ```js

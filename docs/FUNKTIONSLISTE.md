@@ -8,7 +8,7 @@ Zweck: Alles, was das Vorbild kann (Free und Pro), als Liste von Funktionen, die
 | Ansicht | Spalten-Board (bis 7 Spalten), Auto-Anordnen der Spalten | F | Board vorhanden; Spaltenzahl und Auto-Anordnen v0.3 |
 | Ansicht | Zeilen Standard / Kompakt / Erweitert (Seite unter dem Titel) | F | v0.3 |
 | Ansicht | Zentriert: große Uhr, Kachelraster, Ordner an Ort und Stelle, Brotkrumen, Esc geht hoch | F | v0.3 |
-| Ansicht | Galerie Vollbild: Home, Brotkrumen, „Zu Ordner springen“, Suche je Ordner, Raster/Liste, Dichte, Seitenleiste (Widgets, Ordner als Ablageziele) | F | Raster vorhanden; Rest v0.6 |
+| Ansicht | Galerie Vollbild: Home, Brotkrumen, „Zu Ordner springen“, Suche je Ordner, Raster/Liste, Dichte, Seitenleiste (Widgets, Ordner als Ablageziele) | F | vorhanden (v0.10); die Seitenleiste zeigt Ordner als Ablageziele, Widgets bleiben im Kopfbereich |
 | Ansicht | Uhr und Datum über Board, Galerie-Seitenleiste, Zentriert (je eigene Einstellung) | F | v0.3 |
 | Kopfleiste | Filter: Favoriten, Verborgenes anzeigen, Farbmarkierung, Tags (als Chips, „Alle löschen“) | F/P | teils vorhanden; v0.3 |
 | Kopfleiste | Sortierung Manuell / Name / Datum (auf/ab); Ziehen nur in Manuell | F | v0.3 |

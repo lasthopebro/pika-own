@@ -3,6 +3,14 @@
 ## Unveröffentlicht
 - Berechtigung `topSites` entfernt (ungenutzt).
 
+## 0.10.0
+- **Galerie-Vollbild** (Taste `V` oder Kopf-Knopf): Home mit den Spalten des Workspace als Ordner-Kacheln, Klick geht hinein, anklickbare Brotkrumen, `Esc` geht eine Ebene hoch (zuerst wird ein Suchtext geleert) und von Home zurück zum Board; der Fokus kehrt auf die verlassene Kachel zurück.
+- **Suche je Ordner** (Titel und Adresse, Groß/Klein egal) mit Pfeiltasten und Enter; Palette `/Ordner` springt in der Galerie in den Ordner. Eine Änderung aus einem anderen Neuen Tab verwirft den Suchtext nicht.
+- **Raster oder Liste** und **Dichte** S/M/L, in der Galerie-Leiste und unter Einstellungen → Board (`galleryMode`, `galleryDensity`, ungültige Werte fallen auf Raster/mittel zurück).
+- **Ordner als Ablageziele:** Kachel auf einen Ordner der Seitenleiste oder auf eine Ordner-Kachel ziehen verschiebt das Lesezeichen, mit Rückgängig. Mehr als 300 Einträge je Ordner: „Mehr zeigen“.
+- Die Spalten-Ansicht „Spalten-Raster“ im Board (früher „Galerie“ genannt) (Einstellungen → Ansicht) bleibt wie sie war; die Taste `V` öffnet jetzt das Vollbild statt sie umzuschalten.
+- Keine neue Berechtigung, keine Abhängigkeit. Neu: `lib/gallery.js` mit Tests; Browser-Test `gallery`.
+
 ## 0.9.0
 - **Sicherungsordner (Chromium/Brave):** Einstellungen → Sicherungsordner → „Ordner wählen“. Der erste Neue Tab des Tages schreibt `pika-<gerät>-<JJJJMMTT>.json` dorthin und behält die neuesten 5 eigenen Dateien; fremde Dateien bleiben unberührt. Nach einem Browserneustart fragt der Browser den Zugriff erneut ab: Hinweis „Zugriff erneuern“, ein Klick. Die Datei enthält den OpenRouter-Schlüssel nicht. Firefox: Abschnitt unsichtbar, Datei-Export bleibt.
 - **Karte „Sicherung wiederherstellen“** bei frischem Profil (höchstens 3 Lesezeichen, nie exportiert, keine Widgets/Tags): „Aus Sicherungsordner“ (Chromium) oder „Datei wählen“, mit Bestätigung; ungültige Dateien werden abgelehnt. Vorhandene Lesezeichen werden nie gelöscht.
