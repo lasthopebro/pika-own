@@ -35,7 +35,7 @@
 - [x] 5.1 Unit-Tests: `merge` mit alten Ständen, `backupNagDue` mit `nagDays`, Menü-Tastenlogik als reine Funktion (nächster Index)
 - [x] 5.2 `npm test` und `npm run lint` ohne Fehler (Warnungen zu `commands` prüfen)
 - [x] 5.3 Chromium-E2E: Kopf mit sechs Knöpfen plus Mehr, Menü per Tastatur, „In Live-Ordner legen“, Markdown kopieren, Einstellungssuche, Leiste im Neuen Tab aus, Löschen mit Rückgängig, neues Symbol im Manifest
-- [ ] 5.4 Review durch getrennten Prüfer-Agenten (Barrierefreiheit und Sicherheit)
+- [x] 5.4 Review durch getrennten Prüfer-Agenten (Barrierefreiheit und Sicherheit)
 - [x] 5.5 README (Abschnitte Symbole/Menüs/Einstellungen, Tastenkürzel), Draft-PR, `openspec validate v06-feinschliff`
 
 ## 6. Handprüfung

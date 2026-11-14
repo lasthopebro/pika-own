@@ -200,11 +200,12 @@ B.contextMenus.onClicked.addListener(async (info, tab) => {
     await update((S) => saveSession(S, 'Sitzung ' + new Date().toLocaleString('de-DE'), tabs))
   }
 })
-// Tastenkürzel (im Browser änderbar). _execute_action/_execute_sidebar_action führt Firefox selbst aus;
+// Tastenkürzel (im Browser änderbar). _execute_sidebar_action führt Firefox selbst aus;
 // Chromium liefert sie als normales Kommando, dort öffnen wir das Seitenpanel.
 B.commands?.onCommand.addListener(async (cmd, tab) => {
+  // sidePanel.open braucht die Nutzergeste: kein await davor
+  if (cmd === '_execute_sidebar_action') return void Promise.resolve(B.sidePanel?.open?.({ windowId: tab?.windowId })).catch(() => {})
   const t = tab?.id ? tab : (await B.tabs.query({ active: true, currentWindow: true }))[0]
   if (cmd === 'save-page' && /^https?:/.test(t?.url || '')) await savePage(t.url, '', t.title)
   else if (cmd === 'toggle-bar' && t?.id) await B.tabs.sendMessage(t.id, { type: 'toggleBar' }).catch(() => {})
-  else if (cmd === '_execute_action' || cmd === '_execute_sidebar_action') await Promise.resolve(B.sidePanel?.open?.({ windowId: t?.windowId })).catch(() => {})
 })

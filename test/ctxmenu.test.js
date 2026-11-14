@@ -19,3 +19,7 @@ test('Kontextmenü: Link-Speichern und Ordner-Zuordnung auch auf Links', () => {
   const specs = menuSpecs([{ id: 'a', name: 'P', icon: 'x' }])
   for (const id of ['save-page', 'lf:a']) assert.ok(specs.find((s) => s.id === id).contexts.includes('link'))
 })
+test('Kontextmenü: % im Ordnernamen wird maskiert (sonst ersetzt Chromium %s)', () => {
+  const t = menuSpecs([{ id: 'a', name: '100%s', icon: 'x' }]).find((s) => s.id === 'lf:a').title
+  assert.ok(t.includes('100%%s'))
+})
