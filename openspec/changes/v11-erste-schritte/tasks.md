@@ -14,8 +14,8 @@ Regeln wie in `v08-widgets`: höchstens 2 Dateien und etwa 80 Zeilen je Task, am
 
 ## 3. Leere Ordner
 
-- [ ] 3.1 [günstig] `lib/folders.js`: `emptyFolders(tree)` (rekursiv leer, Wurzeln nie) plus Test in `test/folders.test.js` (verschachtelt leer, Ordner mit nur einem Lesezeichen nicht). Prüfen: `npm test`.
-- [ ] 3.2 [günstig] `newtab.js`: Einstellung „Spalte Leere Ordner“ (`settings.emptyCol`), virtuelle Spalte in `columnsFor`, Knopf „Alle aufräumen“ mit Anzahl-Rückfrage über `trashNodes` und Rückgängig. Prüfen: Handprüfung (3 leere Ordner anlegen, aufräumen, Rückgängig).
+- [x] 3.1 [günstig] `lib/folders.js`: `emptyFolders(tree)` (rekursiv leer, Wurzeln nie) plus Test in `test/folders.test.js` (verschachtelt leer, Ordner mit nur einem Lesezeichen nicht). Prüfen: `npm test`.
+- [x] 3.2 [günstig] `newtab.js`: Einstellung „Spalte Leere Ordner“ (`settings.emptyCol`), virtuelle Spalte in `columnsFor`, Knopf „Alle aufräumen“ mit Anzahl-Rückfrage über `trashNodes` und Rückgängig. Prüfen: Handprüfung (3 leere Ordner anlegen, aufräumen, Rückgängig).
 
 ## 4. Abschluss
 

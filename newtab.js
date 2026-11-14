@@ -1,6 +1,6 @@
 import { B } from './lib/api.js'
 import { load, update, patchWidget, addWidget as storeAddWidget, removeWidget } from './lib/store.js'
-import { applyTopics, undo as undoLf } from './lib/folders.js'
+import { applyTopics, undo as undoLf, emptyFolders } from './lib/folders.js'
 import { h, toast, menu, dialog, ask, tile } from './lib/ui.js'
 import { domainOf, groupHistory, renameName, parseAiTopics, score, parseBars, barsToText } from './lib/logic.js'
 import { loadItems } from './lib/dials.js'
@@ -12,7 +12,7 @@ import { openTabs, saveSession, openSession } from './lib/sessions.js'
 import * as ai from './lib/ai.js'
 import * as ollama from './lib/ollama.js'
 import { resumeCards } from './lib/resume.js'
-import { trashAdd, restoreParent, findDupes, discovery, mdLink } from './lib/board.js'
+import { trashAdd, restoreParent, findDupes, discovery, mdLink, toTree, TRASH_MAX } from './lib/board.js'
 import { urlsFromText, backupNagDue, NAG_MS, absorb, canon } from './lib/quick.js'
 import { WIDGETS } from './widgets/index.js'
 import { cleanPath, crumbs, children, filterChildren, up, pathTo, folderList } from './lib/gallery.js'
@@ -81,6 +81,7 @@ function columnsFor(w) {
     cols.push({ id: 'virtual-recent', title: 'Zuletzt hinzugefügt', children: discovery('recent', u), virtual: true },
       { id: 'virtual-top', title: 'Meistbesucht', children: discovery('top', u, histItems), virtual: true })
   }
+  if (S.settings.emptyCol) cols.push({ id: 'virtual-empty', title: 'Leere Ordner', children: emptyFolders(T[0]), virtual: true })
   return cols
 }
 function passes(n) {
@@ -272,12 +273,12 @@ function folderEl(n) {
   return d
 }
 function colEl(f) {
-  const cm = ws().colNames[f.id] || {}
+  const cm = ws().colNames[f.id] || {}, emp = f.id === 'virtual-empty' // Zusatzspalte „Leere Ordner“: zählt Ordner, nimmt nichts per Ziehen an
   return h('section', {
     class: 'col', style: { '--c': cm.color || 'var(--bd)' }, ondragover: (e) => e.preventDefault(),
-    ondrop: (e) => { e.preventDefault(); dropOn(f.virtual ? barOf(T).id : f.id, undefined, e) },
-  }, h('header', { class: 'colhead' }, h('span', { class: 'colname' }, cm.name || f.title || '(ohne Namen)'), h('span', { class: 'muted' }, String(countUrls(f))), h('button', { class: 'ico', title: 'Spaltenmenü', 'aria-label': 'Spaltenmenü', onclick: (e) => colMenu(e, f) }, I('more'))),
-  h('div', { class: 'colbody' }, (f.children || []).filter(passes).map((n) => (n.url ? itemEl(n) : folderEl(n)))))
+    ondrop: (e) => { e.preventDefault(); if (emp) drag = null; else dropOn(f.virtual ? barOf(T).id : f.id, undefined, e) },
+  }, h('header', { class: 'colhead' }, h('span', { class: 'colname' }, cm.name || f.title || '(ohne Namen)'), h('span', { class: 'muted' }, String(emp ? f.children.length : countUrls(f))), emp && f.children.length ? h('button', { onclick: () => cleanEmpty(f.children) }, 'Alle aufräumen') : null, h('button', { class: 'ico', title: 'Spaltenmenü', 'aria-label': 'Spaltenmenü', onclick: (e) => colMenu(e, f) }, I('more'))),
+  h('div', { class: 'colbody' }, (f.children || []).filter(passes).map((n) => (n.url ? itemEl(n) : folderEl(n))), emp && !f.children.length ? h('p', { class: 'muted' }, 'Keine leeren Ordner.') : null))
 }
 function renderBoard() {
   const b = $('board')
@@ -447,6 +448,21 @@ async function trashNodes(nodes) {
   for (const n of nodes) S.trash = trashAdd(S.trash, n, Date.now())
   await persist()
   for (const n of nodes) { try { n.url ? await B.bookmarks.remove(n.id) : await B.bookmarks.removeTree(n.id) } catch (e) { toast(e.message) } }
+}
+// „Alle aufräumen“ der Spalte Leere Ordner: Anzahl nennen, über den Papierkorb löschen (höchstens TRASH_MAX auf einmal), Rückgängig legt sie an die alte Stelle zurück.
+async function cleanEmpty(folders) {
+  const batch = folders.slice(0, TRASH_MAX), rest = folders.length - batch.length
+  if (!confirm(`${batch.length} leere Ordner in den Papierkorb verschieben?${rest ? ` (${rest} weitere beim nächsten Mal)` : ''}${S.trash.length + batch.length > TRASH_MAX ? `\nDer Papierkorb fasst ${TRASH_MAX} Einträge: ältere fallen heraus.` : ''}`)) return
+  const snap = batch.map((n) => ({ parentId: n.parentId, index: n.index, tree: toTree(n) }))
+  await trashNodes(batch)
+  toast(`${batch.length} leere Ordner im Papierkorb`, { label: 'Rückgängig', fn: async () => {
+    for (const x of snap.sort((p, q) => p.index - q.index)) {
+      const p = byId.has(x.parentId) ? x.parentId : barOf(T).id
+      await restoreTree(x.tree, p, p === x.parentId ? x.index : undefined).catch(() => restoreTree(x.tree, p)).catch((e) => toast(e.message))
+    }
+    S.trash = S.trash.filter((e) => !snap.some((x) => !e.tree.url && e.parentId === x.parentId && e.index === x.index && e.tree.title === x.tree.title))
+    await persist(); toast('Wiederhergestellt')
+  } })
 }
 async function restoreTree(t, parentId, index) {
   const n = await B.bookmarks.create(t.url ? { parentId, index, title: t.title, url: t.url } : { parentId, index, title: t.title })
@@ -886,6 +902,7 @@ function settingsDlg() {
     { name: 'galleryMode', label: 'Galerie (Taste V): Darstellung', type: 'select', value: s.galleryMode, options: [['grid', 'Raster'], ['list', 'Liste']] },
     { name: 'galleryDensity', label: 'Galerie (Taste V): Dichte', type: 'select', value: s.galleryDensity, options: [['s', 'Klein'], ['m', 'Mittel'], ['l', 'Groß']] },
     { name: 'discover', label: 'Spalten „Zuletzt hinzugefügt“ und „Meistbesucht“', type: 'checkbox', value: s.discover },
+    { name: 'emptyCol', label: 'Spalte „Leere Ordner“ (mit „Alle aufräumen“)', type: 'checkbox', value: s.emptyCol },
     { name: 'openInNewTab', label: 'Links im Board im neuen Tab öffnen', type: 'checkbox', value: s.openInNewTab },
     { name: 'confirmDelete', label: 'Löschen einzelner Links bestätigen (aus: mit Rückgängig)', type: 'checkbox', value: s.confirmDelete },
     act('Seed Import', 'Seed importieren …', seedDlg),
@@ -909,7 +926,7 @@ function settingsDlg() {
     permsRow,
   ], { ok: 'Speichern', search: true }).then(async (v) => {
     if (!v) return
-    Object.assign(s, { theme: v.theme, accent: v.accent, pitch: v.pitch, view: v.view, galleryMode: v.galleryMode, galleryDensity: v.galleryDensity, font: v.font, discover: v.discover, favicons: v.favicons, newtabBar: v.newtabBar, openInNewTab: v.openInNewTab, confirmDelete: v.confirmDelete, hidden: v.hidden.split(',').map((x) => x.trim()).filter(Boolean) })
+    Object.assign(s, { theme: v.theme, accent: v.accent, pitch: v.pitch, view: v.view, galleryMode: v.galleryMode, galleryDensity: v.galleryDensity, font: v.font, discover: v.discover, emptyCol: v.emptyCol, favicons: v.favicons, newtabBar: v.newtabBar, openInNewTab: v.openInNewTab, confirmDelete: v.confirmDelete, hidden: v.hidden.split(',').map((x) => x.trim()).filter(Boolean) })
     pb.exclude = v.pbExclude.trim()
     pb.quick = Number.isFinite(v.quick) ? Math.min(20, Math.max(0, Math.round(v.quick))) : 8
     s.pomo = { work: Math.max(1, Math.round(v.pomoWork) || 25), brk: Math.max(1, Math.round(v.pomoBrk) || 5) }
