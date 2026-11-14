@@ -3,6 +3,14 @@
 ## Unveröffentlicht
 - Berechtigung `topSites` entfernt (ungenutzt).
 
+## 0.11.0
+- **Erste-Schritte-Tour:** höchstens 5 Schritte (Kopf, Suche `F`, Auswahl `S`, Rechtsklick auf ein Lesezeichen, Einstellungen), erscheint einmal beim ersten Start. `Esc` oder „Überspringen“ beendet sie sofort und dauerhaft (`settings.tourDone`); Schritte ohne Ziel auf der Seite entfallen. Wiederholen: `F`, dann `> Tour`; die `?`-Übersicht nennt es. Wer von einer älteren Version kommt, sieht sie einmal.
+- **Berechtigungsseite** (Einstellungen → Datenschutz → „Berechtigungen anzeigen“): jede Berechtigung des laufenden Manifests mit einem Satz Klartext und Status (erteilt/nicht erteilt, nötig/optional). Optionale lassen sich mit „Widerrufen“ zurücknehmen; widerrufen wird die Webseiten-Berechtigung, schaltet sich die Leiste auf Webseiten aus. `npm test` scheitert, wenn eine Berechtigung ohne Klartext bleibt.
+- **Spalte „Leere Ordner“** (Einstellungen → Board, standardmäßig aus): oberste Ordner ohne Lesezeichen (auch verschachtelt leer), „Alle aufräumen“ fragt mit Anzahl nach, schiebt sie in den Papierkorb (höchstens 20 auf einmal) und bietet Rückgängig.
+- Behoben: Der Neue Tab erkannte in Chromium seine eigenen Schreibvorgänge nicht (Chromium sortiert die Schlüssel in `storage.local`), zeichnete danach neu und verlor den Fokus; der Vergleich ist jetzt unabhängig von der Schlüsselreihenfolge (`canon`).
+- Keine neue Berechtigung, keine Abhängigkeit. Neu: `lib/tour.js`, `lib/tour-ui.js`, `lib/perms-info.js`, `lib/perms-ui.js`; Browser-Tests `tour` (Tour und Leere Ordner) und `perms`.
+- Sprachdateien sind gestrichen (siehe `openspec/changes/v11-erste-schritte`); alle Texte bleiben deutsch.
+
 ## 0.10.0
 - **Galerie-Vollbild** (Taste `V` oder Kopf-Knopf): Home mit den Spalten des Workspace als Ordner-Kacheln, Klick geht hinein, anklickbare Brotkrumen, `Esc` geht eine Ebene hoch (zuerst wird ein Suchtext geleert) und von Home zurück zum Board; der Fokus kehrt auf die verlassene Kachel zurück.
 - **Suche je Ordner** (Titel und Adresse, Groß/Klein egal) mit Pfeiltasten und Enter; Palette `/Ordner` springt in der Galerie in den Ordner. Eine Änderung aus einem anderen Neuen Tab verwirft den Suchtext nicht.

@@ -56,7 +56,7 @@ Zweck: Alles, was das Vorbild kann (Free und Pro), als Liste von Funktionen, die
 | Aussehen | Hintergrund: 8 Vorgaben, eigenes Foto, Farbe, Verlauf (Start/Ende/Winkel), Intensität 10–100, Parallax, Körnung, weiches Leuchten | P | vorhanden |
 | Aussehen | Schrift Sans / Mono / Serif; je Workspace | F | v0.3 |
 | Einstellungen | Suche in den Einstellungen mit Taste /; Seiten: Aussehen, Board & Galerie, Workspaces, Werkzeugleiste, Allgemein, Sicherung, Papierkorb, Berechtigungen, Hilfe, Kürzel, Über | F | v0.6 |
-| Einstellungen | Zusatzordner: Zuletzt hinzugefügt, Meistbesucht (bei uns aus dem echten Verlauf, nicht nur Klicks im Board), Leere Ordner | F | v0.3 (Entdeckungs-Ordner), Leere Ordner v0.6 |
+| Einstellungen | Zusatzordner: Zuletzt hinzugefügt, Meistbesucht (bei uns aus dem echten Verlauf, nicht nur Klicks im Board), Leere Ordner | F | v0.3 (Entdeckungs-Ordner); Leere Ordner vorhanden (v0.11) |
 | Einstellungen | Allgemein: Sprache, Lesezeichen im neuen Tab öffnen, Tab-Gruppen, Tooltips, Animationen, „Board zeigt“ (synchron/Gerät) | F | v0.6 |
 | Papierkorb | Rückgängig, dann 7 Tage, höchstens 20 Einträge, 1 MiB; Wiederherstellen mit Ersatz-Ordner; Teilwiederherstellung; Leeren | F | v0.3 |
 | Sicherung | Export als JSON (Notizen, Widgets, Favoriten, Farben, Tags, Kommentare, Aussehen, Galerie, Sitzungen, alle Workspaces; ohne Lesezeichenbaum, Erinnerungen, Hintergrundbilder) | F | vorhanden (Export); Umfang v0.3 |
@@ -65,9 +65,9 @@ Zweck: Alles, was das Vorbild kann (Free und Pro), als Liste von Funktionen, die
 | Sicherung | Sicherungsordner (Chrome/Edge): gewählter Ordner, Unterordner, Datei je Snapshot, eine Dateigruppe je Gerät, Gerät umbenennen, Wiederherstellen von anderem Gerät, Zugriff erneuern | P | v0.3: Download-Ordner; Ordnerwahl auf Chromium v0.6 |
 | Sicherung | Erinnerung an Sicherung („Kopie speichern“ nach 1, 7, 14, dann alle 30 Tage); Karte „Sicherung wiederherstellen“ auf neuem Rechner | F | v0.6 |
 | Pro/Lizenz | Lizenzschlüssel, Testzeitraum, Gerätegrenze, Sperren bei Ablauf | P | **entfällt**: alles frei, kein Schlüssel |
-| Rest | Erste-Schritte-Tour (Sprache, Kopf, Galerie, Einstellungen, Item-Menü), wiederholbar | F | v0.6 |
-| Rest | Fünf Sprachen (Englisch, Ukrainisch, Spanisch, Französisch, Deutsch) | F | Deutsch/Englisch v0.3, Rest v0.6 optional |
-| Rest | Berechtigungen: bookmarks, storage, search, favicon; optional tabs, tabGroups, Benachrichtigungen, Alarme; Seite „Berechtigungen“ | F | v0.6 |
+| Rest | Erste-Schritte-Tour (Sprache, Kopf, Galerie, Einstellungen, Item-Menü), wiederholbar | F | vorhanden (v0.11), ohne Sprachwahl |
+| Rest | Fünf Sprachen (Englisch, Ukrainisch, Spanisch, Französisch, Deutsch) | F | entfällt außer DE/EN in v03 |
+| Rest | Berechtigungen: bookmarks, storage, search, favicon; optional tabs, tabGroups, Benachrichtigungen, Alarme; Seite „Berechtigungen“ | F | vorhanden (v0.11) |
 | Rest | Keine Analyse, keine Konten; nur lokal | F | vorhanden |
 
 ## Zusätze von uns (Mehrwert, nicht im Vorbild)
