@@ -15,6 +15,7 @@ import { resumeCards } from './lib/resume.js'
 import { trashAdd, restoreParent, findDupes, discovery, mdLink } from './lib/board.js'
 import { urlsFromText, backupNagDue, NAG_MS, absorb } from './lib/quick.js'
 import { WIDGETS } from './widgets/index.js'
+import { cleanPath, crumbs, children, filterChildren, up, pathTo, folderList } from './lib/gallery.js'
 
 let S, T, histItems = [], filterTag = '', selMode = false, focus = null, drag = null, importing = false
 const own = new Set() // selbst geschriebene Stände (JSON), damit deren Änderungsereignis nicht neu lädt
@@ -284,6 +285,7 @@ function renderBoard() {
   b.replaceChildren(...[focus ? h('button', { onclick: () => { focus = null; renderBoard() } }, '← Alle Spalten') : null, ...cols.map(colEl),
     cols.length ? null : h('p', { class: 'muted' }, 'Keine Lesezeichen. Einstellungen → „Seed importieren“ oder Lesezeichen anlegen.')].filter(Boolean))
   renderSelBar()
+  if (gal) drawGal()
 }
 async function dropOn(parentId, index, ev) {
   const id = drag; drag = null
@@ -492,9 +494,124 @@ function bulkRename(nodes) {
   } }])
 }
 
+/* ---------- Galerie (Vollbild) ---------- */
+// Zustand nur im Speicher, beim Navigieren wird nichts geschrieben: gal = null (zu) oder { path: Ordner-IDs ([] = Home), q: Suchtext, limit, back, el }.
+// Suchfeld und Knöpfe in el bleiben beim Neuzeichnen stehen, damit eine Änderung aus einem anderen Neuen Tab die Eingabe nicht verwirft.
+let gal = null
+const GAL_STEP = 300 // shortcut: keine Virtualisierung, erst 300 Kacheln, dann „Mehr zeigen“; bei tausenden Einträgen je Ordner virtualisieren
+const galHome = () => columnsFor(ws())
+const galNodes = () => new Map([...byId, ...galHome().map((c) => [c.id, c])])
+const galTiles = () => [...gal.el.grid.querySelectorAll('.item')]
+const galBehind = () => [$('top'), $('pikabar'), document.querySelector('main')]
+function galOpen() {
+  if (gal) return
+  const el = {}
+  const seg = (key, opts) => opts.map(([v, label, name]) => h('button', { type: 'button', 'data-k': key, 'data-v': v, title: name, 'aria-label': name, onclick: () => galSet(key, v) }, label))
+  el.q = h('input', {
+    type: 'search', class: 'gq', 'aria-label': 'In diesem Ordner suchen', placeholder: 'In diesem Ordner suchen …',
+    oninput: () => { gal.q = el.q.value; gal.limit = GAL_STEP; drawGal() },
+    onkeydown: (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); galTiles()[0]?.focus() }
+      else if (e.key === 'Enter') { e.preventDefault(); galTiles()[0]?.click() }
+      else if (e.key === 'Escape') { e.preventDefault(); galEsc() }
+    },
+  })
+  el.path = h('nav', { class: 'gpath', 'aria-label': 'Pfad' })
+  el.ctl = h('div', { class: 'gctl', role: 'group', 'aria-label': 'Darstellung' },
+    seg('galleryMode', [['grid', 'Raster', 'Raster'], ['list', 'Liste', 'Liste']]), seg('galleryDensity', [['s', 'S', 'Dichte klein'], ['m', 'M', 'Dichte mittel'], ['l', 'L', 'Dichte groß']]),
+    h('button', { type: 'button', onclick: galClose }, 'Zurück zum Board'))
+  el.grid = h('div', { class: 'ggrid', role: 'group', onkeydown: (e) => {
+    const t = galTiles(), i = t.indexOf(document.activeElement), d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]
+    if (i < 0 || e.ctrlKey || e.metaKey || e.altKey) return
+    if (d) { e.preventDefault(); (t[i + d] || (d < 0 ? el.q : t[i])).focus() }
+    else if (e.key === 'Home') { e.preventDefault(); t[0].focus() } else if (e.key === 'End') { e.preventDefault(); t.at(-1).focus() }
+  } })
+  el.side = h('nav', { class: 'gside', 'aria-label': 'Ordner dieses Workspace' })
+  el.status = h('div', { class: 'sr', role: 'status' })
+  el.root = h('section', { id: 'gal', 'aria-label': 'Galerie' }, el.q, el.path, el.ctl, el.grid, el.side, el.status)
+  gal = { path: [], q: '', limit: GAL_STEP, back: document.activeElement, el }
+  document.body.append(el.root)
+  galBehind().forEach((x) => { x.inert = true }) // Tab erreicht nur noch die Galerie
+  drawGal(null)
+}
+function galClose() {
+  if (!gal) return
+  const { back, el } = gal
+  el.root.remove(); gal = null
+  galBehind().forEach((x) => { x.inert = false })
+  ;(back?.isConnected && back !== document.body ? back : document.querySelector('#top button[aria-label^="Board / Galerie"]'))?.focus()
+}
+// Galerie auf diesen Pfad setzen; Suchfeld wird geleert. focusId = Kachel, die den Fokus bekommt (null: die erste).
+function galGo(path, focusId = null) {
+  gal.path = path; gal.q = ''; gal.limit = GAL_STEP; gal.el.q.value = ''
+  drawGal(focusId)
+}
+// Esc: erst Suchfeld leeren, dann eine Ebene hoch (Fokus auf die verlassene Kachel), auf Home zurück zum Board.
+function galEsc() {
+  if (gal.q) { gal.q = ''; gal.limit = GAL_STEP; gal.el.q.value = ''; drawGal(); gal.el.q.focus(); return }
+  const p = up(gal.path)
+  if (p) galGo(p, gal.path.at(-1)); else galClose()
+}
+function galSet(key, v) {
+  S.settings[key] = v; drawGal()
+  update((cur) => { cur.settings[key] = v; remember(cur) }) // nur dieses Feld, nie den ganzen Tab-Stand
+}
+function galDrop(el, parentId, title) {
+  el.addEventListener('dragover', (e) => e.preventDefault())
+  el.addEventListener('dragenter', () => el.classList.add('over'))
+  el.addEventListener('dragleave', () => el.classList.remove('over'))
+  el.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); el.classList.remove('over'); dropSide(parentId, title, e) })
+}
+// Ablegen auf einen Ordner (Seitenleiste oder Ordner-Kachel): bestehende dropOn-Verschiebung, danach Meldung mit Rückgängig.
+async function dropSide(parentId, title, ev) {
+  const n = byId.get(drag), from = n && { parentId: n.parentId, index: n.index }
+  await dropOn(parentId, undefined, ev)
+  if (!n || n.id === parentId) return
+  const now = (await B.bookmarks.get(n.id).catch(() => []))[0]
+  if (!now || now.parentId !== parentId || from.parentId === parentId) return
+  toast(`Verschoben nach „${title}“`, { label: 'Rückgängig', fn: () => B.bookmarks.move(n.id, from).then(() => toast('Zurückgenommen'), (e) => toast(e.message)) })
+}
+function galTile(n) {
+  let a
+  if (n.url) { a = itemEl(n); a.append(h('span', { class: 'gurl muted' }, domainOf(n.url))); a.addEventListener('dragend', () => { drag = null }) }
+  else {
+    const c = countUrls(n)
+    a = h('button', { type: 'button', class: 'item gfolder', title: n.title, 'aria-label': `${n.title || 'Ordner'}, Ordner, ${c} Lesezeichen`, onclick: () => galGo([...gal.path, n.id]) },
+      I('folder'), h('span', { class: 't' }, n.title || 'Ordner'), h('span', { class: 'muted' }, String(c)))
+    if (!n.virtual) { a.draggable = true; a.addEventListener('dragstart', () => { drag = n.id }); a.addEventListener('dragend', () => { drag = null }) }
+    const to = n.virtual ? (n.id === 'virtual' ? barOf(T).id : null) : n.id
+    if (to) galDrop(a, to, n.title)
+  }
+  a.dataset.id = n.id
+  return a
+}
+function drawGal(focusId) {
+  const { el } = gal, st = S.settings, nodes = galNodes(), home = galHome()
+  gal.path = cleanPath(gal.path, nodes) // gelöschter Ordner: Pfad bis zur letzten gültigen Stufe kürzen
+  const cs = crumbs(gal.path, nodes), cur = gal.path.length ? nodes.get(gal.path.at(-1)) : { children: home }
+  const all = filterChildren(children(cur), gal.q), shown = all.slice(0, gal.limit)
+  const had = el.grid.contains(document.activeElement) ? document.activeElement.dataset.id : null
+  el.root.dataset.mode = st.galleryMode; el.root.dataset.d = st.galleryDensity
+  for (const b of el.ctl.querySelectorAll('[data-k]')) b.setAttribute('aria-pressed', String(st[b.dataset.k] === b.dataset.v))
+  el.path.replaceChildren(h('button', { type: 'button', 'aria-current': cs.length ? null : 'page', onclick: () => galGo([]) }, 'Home'),
+    ...cs.flatMap((c, i) => [h('span', { 'aria-hidden': 'true' }, '›'), h('button', { type: 'button', 'aria-current': i === cs.length - 1 ? 'page' : null, onclick: () => galGo(gal.path.slice(0, i + 1)) }, c.title)]))
+  el.grid.setAttribute('aria-label', cs.length ? cs.at(-1).title : 'Home')
+  el.grid.replaceChildren(...shown.map(galTile),
+    all.length > shown.length ? h('button', { type: 'button', class: 'gmore', onclick: () => { gal.limit += GAL_STEP; drawGal(all[shown.length].id) } }, `Mehr zeigen (${all.length - shown.length} weitere)`) : null,
+    all.length ? null : h('p', { class: 'muted' }, gal.q ? `Keine Treffer für „${gal.q}“.` : 'Dieser Ordner ist leer.'))
+  el.status.textContent = `${all.length} ${all.length === 1 ? 'Eintrag' : 'Einträge'}`
+  const here = gal.path.at(-1)
+  el.side.replaceChildren(h('b', { class: 'muted' }, 'Ordner (hierher ziehen)'), ...folderList(home, barOf(T).id).map((f) => {
+    const b = h('button', { type: 'button', class: 'gs' + (f.id === here ? ' on' : ''), style: { '--d': f.depth }, title: f.title, onclick: () => galGo(pathTo(f.id, byId, home.map((c) => c.id))) }, I('folder'), h('span', {}, f.title))
+    galDrop(b, f.id, f.title)
+    return b
+  }))
+  if (focusId !== undefined || had) (((focusId ?? had) && el.grid.querySelector(`[data-id="${CSS.escape(focusId ?? had)}"]`)) || el.grid.querySelector('.item'))?.focus()
+}
+
 /* ---------- Auswahlmodus, Ansicht ---------- */
 function toggleSel() { selMode = !selMode; sel.clear(); renderBoard() }
-function toggleView() { S.settings.view = S.settings.view === 'board' ? 'gallery' : 'board'; persist(); renderBoard() }
+const toggleView = () => (gal ? galClose() : galOpen())
 function renderSelBar() {
   const bar = $('selbar')
   bar.hidden = !selMode
@@ -528,8 +645,8 @@ function palette() {
   const compute = () => {
     const q = input.value, c = q[0], rest = q.slice(1).trim()
     if (c === '>') rows = ACTIONS.filter(([l]) => score(rest, l)).map(([label, fn]) => ({ label, fn }))
-    else if (c === '/') rows = allFolders().filter((f) => score(rest, f.label)).map((f) => ({ label: f.label, sub: countUrls(f.node) + '', fn: () => { focus = f.node.id; renderBoard() } }))
-    else if (c === '@') rows = S.workspaces.filter((w) => score(rest, w.name)).map((w) => ({ label: w.name, sub: 'Workspace', fn: async () => { S.currentWs = w.id; focus = null; await persist(); render() } }))
+    else if (c === '/') rows = allFolders().filter((f) => score(rest, f.label)).map((f) => ({ label: f.label, sub: countUrls(f.node) + '', fn: () => { if (gal) galGo(pathTo(f.node.id, byId, galHome().map((c) => c.id))); else { focus = f.node.id; renderBoard() } } }))
+    else if (c === '@') rows = S.workspaces.filter((w) => score(rest, w.name)).map((w) => ({ label: w.name, sub: 'Workspace', fn: async () => { S.currentWs = w.id; focus = null; if (gal) gal.path = []; await persist(); render() } }))
     else if (c === '#') rows = Object.keys(S.tags).filter((t) => score(rest, t)).map((t) => ({ label: '#' + t, sub: 'Tag-Filter', fn: () => { filterTag = t; renderTags(); renderBoard() } }))
     else rows = urls.map((n) => ({ n, s: score(q, `${n.title} ${n.url} ${(S.meta[n.url]?.tags || []).join(' ')}`) })).filter((x) => x.s).sort((a, b) => b.s - a.s).slice(0, 40)
       .map(({ n }) => ({ label: n.title || n.url, sub: domainOf(n.url), fn: (ctrl) => (ctrl ? B.tabs.create({ url: n.url }) : go(n.url)) }))
@@ -547,6 +664,7 @@ function palette() {
 addEventListener('keydown', (e) => {
   if (document.querySelector('dialog[open]') || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.ctrlKey || e.metaKey) return
   const k = e.key.toLowerCase()
+  if (gal && (k === 'escape' || k === 'v')) { if (k === 'v') galClose(); else galEsc(); return } // die Galerie liegt vor Auswahl, Fokus und Tag-Filter
   if (k === 'f') { e.preventDefault(); palette() }
   else if (k === 's') toggleSel()
   else if (k === 'v') toggleView()
@@ -561,7 +679,7 @@ async function keysDlg() {
   const table = (rows) => h('table', { class: 'keys' }, rows.map(([k, d]) => h('tr', {}, h('td', {}, h('kbd', {}, k)), h('td', {}, d))))
   dialog('Tastenkürzel', h('div', {},
     h('h4', {}, 'Im Neuen Tab'),
-    table([['F', 'Suche'], ['S', 'Auswahlmodus'], ['V', 'Board / Galerie'], ['N', 'Neuer Workspace'], ['?', 'Diese Übersicht'], ['Esc', 'Auswahl, Ausschnitt oder Tag-Filter zurücksetzen'], ['/', 'Suchfeld im Einstellungsdialog'], ['Pfeile, Pos1, Ende, Enter, Esc', 'in jedem Menü']]),
+    table([['F', 'Suche'], ['S', 'Auswahlmodus'], ['V', 'Galerie öffnen / schließen'], ['N', 'Neuer Workspace'], ['?', 'Diese Übersicht'], ['Esc', 'Auswahl, Ausschnitt oder Tag-Filter zurücksetzen; in der Galerie: Suchfeld leeren, eine Ebene hoch, zurück zum Board'], ['/', 'Suchfeld im Einstellungsdialog'], ['Pfeile, Pos1, Ende, Enter, Esc', 'in jedem Menü']]),
     h('h4', {}, 'Im Browser'),
     table(cmds.map((c) => [c.shortcut || 'nicht belegt', c.description])),
     h('p', { class: 'muted' }, 'Die Browser-Kürzel änderst du in Chrome, Brave und Edge unter chrome://extensions/shortcuts, in Firefox unter about:addons (Zahnrad, „Tastenkürzel verwalten“).')))

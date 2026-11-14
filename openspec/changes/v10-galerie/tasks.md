@@ -8,8 +8,8 @@ Regeln wie in `v08-widgets`: höchstens 2 Dateien und etwa 80 Zeilen je Task, am
 
 ## 2. Ansicht
 
-- [ ] 2.1 [günstig] `newtab.js` + `style.css`: Galerie-Vollbild mit Home-Kacheln und Brotkrumen (`nav`, anklickbar), Klick auf Ordner geht hinein; Esc geht mit `up(path)` hoch, von Home zurück zum Board (Fokus kehrt auf die zuletzt geöffnete Kachel zurück); Taste V und Kopf-Knopf öffnen sie; die alte `.gallery`-Raster-Klasse im Board bleibt unverändert. Prüfen: Handprüfung in Chromium (hinein, Brotkrume zurück, Esc).
-- [ ] 2.2 [günstig] `newtab.js` + `style.css`: Suchfeld je Ordner mit `filterChildren`, Pfeiltasten/Enter; Palette-Treffer `/Name` setzt in der Galerie den Pfad. Prüfen: Handprüfung („git“ filtert, `/` springt).
+- [x] 2.1 [günstig] `newtab.js` + `style.css`: Galerie-Vollbild mit Home-Kacheln und Brotkrumen (`nav`, anklickbar), Klick auf Ordner geht hinein; Esc geht mit `up(path)` hoch, von Home zurück zum Board (Fokus kehrt auf die zuletzt geöffnete Kachel zurück); Taste V und Kopf-Knopf öffnen sie; die alte `.gallery`-Raster-Klasse im Board bleibt unverändert. Prüfen: Handprüfung in Chromium (hinein, Brotkrume zurück, Esc).
+- [x] 2.2 [günstig] `newtab.js` + `style.css`: Suchfeld je Ordner mit `filterChildren`, Pfeiltasten/Enter; Palette-Treffer `/Name` setzt in der Galerie den Pfad. Prüfen: Handprüfung („git“ filtert, `/` springt).
 
 ## 3. Einstellungen
 
@@ -18,7 +18,7 @@ Regeln wie in `v08-widgets`: höchstens 2 Dateien und etwa 80 Zeilen je Task, am
 
 ## 4. Ablageziele
 
-- [ ] 4.1 [günstig] `newtab.js`: Seitenleiste mit den Ordnern des Workspace; `drop` ruft `dropOn(parentId)` auf (keine neue Schreiblogik), Meldung mit Rückgängig. Prüfen: Handprüfung (Kachel ziehen, Rückgängig).
+- [x] 4.1 [günstig] `newtab.js`: Seitenleiste mit den Ordnern des Workspace; `drop` ruft `dropOn(parentId)` auf (keine neue Schreiblogik), Meldung mit Rückgängig. Prüfen: Handprüfung (Kachel ziehen, Rückgängig).
 
 ## 5. Abschluss
 

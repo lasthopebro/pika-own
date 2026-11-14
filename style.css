@@ -72,3 +72,24 @@ svg.pi{flex:none;vertical-align:-3px}button.ico svg.pi,.search svg.pi{display:bl
 .dsearch{width:100%;position:sticky;top:-16px;z-index:2}
 .egrid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin:6px 0}.egrid button{font-size:18px;padding:4px 0}
 .keys{width:100%;border-collapse:collapse}.keys td{padding:3px 6px;border-bottom:1px solid var(--bd)}.keys td:first-child{white-space:nowrap}.keys kbd{font:12px ui-monospace,Consolas,monospace;background:var(--bg);border:1px solid var(--bd);border-radius:5px;padding:1px 6px}
+
+/* Galerie (Vollbild): Suche, Pfad, Darstellung oben; links Ordner als Ablageziele, rechts die Kacheln */
+#gal{position:fixed;inset:0;z-index:8;background:var(--bg);display:grid;grid-template-columns:230px minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"q ctl" "path path" "side grid";gap:8px 16px;padding:12px 16px;--w:150px}
+#gal[data-d=s]{--w:110px}#gal[data-d=l]{--w:220px}
+#gal .gq{grid-area:q;width:100%;max-width:420px}
+.gctl{grid-area:ctl;display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}.gctl button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.gpath{grid-area:path;display:flex;gap:4px;align-items:center;flex-wrap:wrap}.gpath button{border:0;background:none;padding:2px 6px}.gpath button:hover{background:color-mix(in srgb,var(--accent) 18%,transparent)}.gpath button[aria-current=page]{font-weight:600}
+.gside{grid-area:side;overflow:auto;min-height:0;display:flex;flex-direction:column;gap:2px;padding-right:8px;border-right:1px solid var(--bd)}
+.gs{display:flex;gap:6px;align-items:center;text-align:left;border:0;background:none;padding:4px 6px 4px calc(6px + var(--d,0)*12px);white-space:nowrap}.gs span{overflow:hidden;text-overflow:ellipsis}
+.gs:hover,.gs.on,.gs.over,.gfolder.over{background:color-mix(in srgb,var(--accent) 18%,transparent)}.gs.over,.gfolder.over{outline:2px dashed var(--accent)}
+.ggrid{grid-area:grid;overflow:auto;min-height:0;overscroll-behavior:contain;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--w),1fr));gap:8px;align-content:start;padding:2px}
+.ggrid .item{flex-direction:column;justify-content:center;text-align:center;white-space:normal;padding:12px 8px;background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--lc,var(--bd));border-radius:12px;min-height:84px}
+.ggrid .item:hover,.ggrid .item:focus-visible{border-color:var(--accent)}.ggrid .item:focus-visible{outline:2px solid var(--accent)}
+.ggrid .item .t{flex:none;max-height:2.8em;white-space:normal;word-break:break-word}.ggrid .item .tile{width:34px;height:34px;font-size:16px}.ggrid .gfolder svg.pi{width:30px;height:30px}
+.ggrid .gurl{display:none}.ggrid .gmore,.ggrid>p{grid-column:1/-1}
+#gal[data-mode=list] .ggrid{grid-template-columns:minmax(0,1fr);gap:2px}
+#gal[data-mode=list] .ggrid .item{flex-direction:row;justify-content:flex-start;text-align:left;min-height:0;padding:5px 10px;border-radius:8px}
+#gal[data-mode=list] .ggrid .item .t{flex:1;white-space:nowrap;text-overflow:ellipsis;max-height:none}#gal[data-mode=list] .ggrid .item .tile{width:22px;height:22px;font-size:12px}#gal[data-mode=list] .ggrid .gfolder svg.pi{width:20px;height:20px}
+#gal[data-mode=list] .ggrid .gurl{display:block;flex:0 1 40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#gal[data-mode=list][data-d=s] .ggrid .item{padding:2px 8px;font-size:12px}#gal[data-mode=list][data-d=l] .ggrid .item{padding:11px 12px;font-size:16px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
