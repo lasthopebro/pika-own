@@ -2,7 +2,7 @@
 
 ## 1. Branch und Übergabe
 
-- [ ] 1.1 Worktree `v06-feinschliff` (Branch `agent/claude/v06-feinschliff` von `main`) weiterverwenden; Draft-PR „v0.6 Feinschliff: Symbole, Menüs, Optionen“
+- [x] 1.1 Worktree `v06-feinschliff` (Branch `agent/claude/v06-feinschliff` von `main`) weiterverwenden; Draft-PR „v0.6 Feinschliff: Symbole, Menüs, Optionen“
 - [x] 1.2 Version 0.6.0 in `manifest.json` und `package.json`, `CHANGELOG.md`
 
 ## 2. Symbole
@@ -36,7 +36,7 @@
 - [x] 5.2 `npm test` und `npm run lint` ohne Fehler (Warnungen zu `commands` prüfen)
 - [x] 5.3 Chromium-E2E: Kopf mit sechs Knöpfen plus Mehr, Menü per Tastatur, „In Live-Ordner legen“, Markdown kopieren, Einstellungssuche, Leiste im Neuen Tab aus, Löschen mit Rückgängig, neues Symbol im Manifest
 - [ ] 5.4 Review durch getrennten Prüfer-Agenten (Barrierefreiheit und Sicherheit)
-- [ ] 5.5 README (Abschnitte Symbole/Menüs/Einstellungen, Tastenkürzel), Draft-PR, `openspec validate v06-feinschliff`
+- [x] 5.5 README (Abschnitte Symbole/Menüs/Einstellungen, Tastenkürzel), Draft-PR, `openspec validate v06-feinschliff`
 
 ## 6. Handprüfung
 
