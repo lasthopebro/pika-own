@@ -16,12 +16,12 @@ Regeln für jeden Task: höchstens 2 Dateien und etwa 80 geänderte Zeilen; am E
 ## 3. Registry
 
 - [x] 3.1 [stark] `patchWidget(id, fn)` in `lib/store.js` plus Test in `test/store.test.js` „patchWidget ändert nur das eine Widget und behält fremde Felder“. Prüfen: `npm test`.
-- [ ] 3.2 [günstig] `widgets/index.js` (leere Liste) und `test/widgets.contract.test.js` mit DOM-Ersatz; Test läuft über `WIDGETS`. Prüfen: `npm test` grün (0 Widgets).
-- [ ] 3.3 [günstig] `widgets/counter.js` (aus `newtab.js` herauslösen, Speichern über `patch`), in `index.js` eintragen. Prüfen: Vertragstest und `tools/e2e/widgets.mjs`.
-- [ ] 3.4 [günstig] `widgets/snippets.js` wie 3.3.
-- [ ] 3.5 [günstig] `widgets/clock.js` und `widgets/countdown.js` wie 3.3.
-- [ ] 3.6 [stark] `widgets/timer.js` (Pomodoro, Alarm `timer|<id>`, `timerLeft/timerNext` aus `lib/quick.js`) wie 3.3.
-- [ ] 3.7 [stark] Hülle in `newtab.js`: `widgetEl`/`addWidget` lesen nur noch `WIDGETS`, `try/catch` → Fehlerkarte; alte `if`-Kette, Titel- und Felder-Map löschen. Prüfen: alle E2E-Abläufe grün, `grep -n "type === 'counter'" newtab.js` leer.
+- [x] 3.2 [günstig] `widgets/index.js` (leere Liste) und `test/widgets.contract.test.js` mit DOM-Ersatz; Test läuft über `WIDGETS`. Prüfen: `npm test` grün (0 Widgets).
+- [x] 3.3 [günstig] `widgets/counter.js` (aus `newtab.js` herauslösen, Speichern über `patch`), in `index.js` eintragen. Prüfen: Vertragstest und `tools/e2e/widgets.mjs`.
+- [x] 3.4 [günstig] `widgets/snippets.js` wie 3.3.
+- [x] 3.5 [günstig] `widgets/clock.js` und `widgets/countdown.js` wie 3.3.
+- [x] 3.6 [stark] `widgets/timer.js` (Pomodoro, Alarm `timer|<id>`, `timerLeft/timerNext` aus `lib/quick.js`) wie 3.3.
+- [x] 3.7 [stark] Hülle in `newtab.js`: `widgetEl`/`addWidget` lesen nur noch `WIDGETS`, `try/catch` → Fehlerkarte; alte `if`-Kette, Titel- und Felder-Map löschen. Prüfen: alle E2E-Abläufe grün, `grep -n "type === 'counter'" newtab.js` leer.
 
 ## 4. Abschluss
 

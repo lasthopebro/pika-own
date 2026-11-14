@@ -2,7 +2,7 @@
 // den Pomodoro-Wechsel im Hintergrund und das Entfernen. Node: node tools/e2e/widgets.mjs <Erweiterungsordner>
 import { flow } from './harness.mjs'
 
-flow('widgets', async ({ ctx, id, ok, msg, newtab }) => {
+flow('widgets', async ({ ctx, ok, newtab, until }) => {
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write'])
   const page = await newtab()
   const W = (t) => page.locator('.widget', { hasText: t })
@@ -55,6 +55,27 @@ flow('widgets', async ({ ctx, id, ok, msg, newtab }) => {
   ok(await W('Textbausteine').count() === 1 && await W('Textbausteine').locator('button', { hasText: 'Hallo' }).count() === 1, 'Textbausteine: Titel und ein Knopf je Zeile')
   await W('Textbausteine').locator('button', { hasText: 'Gruß' }).click()
   ok(await page.locator('.toast', { hasText: 'Kopiert' }).count() === 1 && (await page.evaluate(() => navigator.clipboard.readText())) === 'Gruß', 'Textbausteine: Klick kopiert den Text')
+
+  // Zwei Neue Tabs: Tab B ist alt (Zähler 1), Tab A erhöht auf 2, danach ändert B die Textbausteine; beide Änderungen bleiben (v0.7)
+  const b = await newtab(); await b.waitForSelector('.widget')
+  await plus.click()
+  await page.waitForFunction(async () => (await (await import('./lib/store.js')).load()).workspaces[0].widgets.find((w) => w.type === 'counter')?.n === 2)
+  await b.locator('.widget', { hasText: 'Textbausteine' }).locator('button[aria-label="Textbausteine bearbeiten"]').click()
+  await b.locator('dialog textarea').fill('Hallo\nGruß\nNeu'); await b.locator('dialog button.primary').click()
+  await b.waitForSelector('.widget button:has-text("Neu")')
+  const both = await stored()
+  ok(both.find((w) => w.type === 'counter').n === 2 && both.find((w) => w.type === 'snippets').items.join() === 'Hallo,Gruß,Neu', 'Zwei Neue Tabs: Zähler (Tab A) und Textbausteine (Tab B) sind beide gespeichert')
+  await b.close()
+
+  // Fehler-Isolation: beschädigte Daten und unbekannter Typ ergeben je eine Fehlerkarte, der Rest bleibt bedienbar
+  await page.evaluate(async () => { const { update } = await import('./lib/store.js'); await update((S) => { S.workspaces[0].widgets.push({ id: 'kaputt', type: 'snippets', items: 5 }, { id: 'zukunft', type: 'gibtsnicht' }) }) })
+  await page.reload(); await page.waitForSelector('.widget')
+  ok(await page.locator('.widget-error').count() === 2 && await page.locator('.widget-error', { hasText: 'Widget-Fehler' }).first().locator('button', { hasText: 'Entfernen' }).count() === 1, 'Fehlerkarten: beschädigtes und unbekanntes Widget zeigen „Widget-Fehler“ mit Entfernen')
+  ok(await W('Kaffee').count() === 1 && await page.locator('#top button').count() === 7, 'Fehlerkarten: andere Widgets und Board bleiben erhalten')
+  await W('Kaffee').locator('button', { hasText: '+' }).click()
+  ok(await until(page, async () => (await (await import('./lib/store.js')).load()).workspaces[0].widgets.find((w) => w.type === 'counter')?.n === 3), 'Fehlerkarten: Zähler daneben funktioniert weiter')
+  while (await page.locator('.widget-error').count()) { const n = await page.locator('.widget-error').count(); await page.locator('.widget-error button', { hasText: 'Entfernen' }).first().click(); await page.waitForFunction((n) => document.querySelectorAll('.widget-error').length === n - 1, n) }
+  ok(!(await stored()).some((w) => w.id === 'kaputt' || w.id === 'zukunft'), 'Fehlerkarte: Entfernen löscht das Widget aus dem Speicher')
 
   // Pomodoro: Der Hintergrund wechselt nach Ablauf in die Pause; der Neue Tab zeigt den Stand (aus e2e-chromium.mjs, v0.5.2)
   const pomo = await page.evaluate(async () => {
