@@ -4,7 +4,7 @@ Regeln wie in `v08-widgets`: höchstens 2 Dateien und etwa 80 Zeilen je Task, am
 
 ## 1. Reine Logik
 
-- [ ] 1.1 [günstig] `lib/gallery.js`: `crumbs(path, byId)`, `children(node)`, `filterChildren(nodes, q)`, `up(path)` plus `test/gallery.test.js` (Pfad mit gelöschtem Ordner bricht nicht, Filter ignoriert Groß/Klein, `up([])` ist `null`). Prüfen: `npm test`.
+- [x] 1.1 [günstig] `lib/gallery.js`: `crumbs(path, byId)`, `children(node)`, `filterChildren(nodes, q)`, `up(path)` plus `test/gallery.test.js` (Pfad mit gelöschtem Ordner bricht nicht, Filter ignoriert Groß/Klein, `up([])` ist `null`). Prüfen: `npm test`.
 
 ## 2. Ansicht
 
