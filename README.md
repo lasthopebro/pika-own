@@ -3,7 +3,7 @@
 Eigenes Lesezeichen-Board als Neuer-Tab-Seite plus Seitenleiste. Firefox und Chromium/Brave (Manifest V3), ohne Build-Schritt, ohne Konto.
 Eigener Code, clean-room: Vorbild ist nur Aussehen und Verhalten, kein fremder Code, siehe `PLAN-DECISIONTREE.md` (Regeln R1-R5).
 
-## Installieren (Release 0.5.1)
+## Installieren (Release 0.5.2)
 1. Zip aus den [Releases](https://github.com/lasthopebro/pika-own/releases) entpacken (oder Repository klonen).
 2. Brave/Chrome: `brave://extensions` → Entwicklermodus → Entpackte Erweiterung laden → entpackten Ordner wählen.
 3. Firefox: `about:debugging` → Dieser Firefox → Temporäres Add-on laden → `manifest.json` (nach Neustart erneut nötig, solange nicht signiert).
@@ -14,6 +14,14 @@ Eigener Code, clean-room: Vorbild ist nur Aussehen und Verhalten, kein fremder C
 - **Live-Tab-Ordner:** ＋ legt einen benannten Ordner an (Symbol änderbar). Im Ordner-Menü: Tab hinzufügen, öffnen ohne Duplikat (vorhandener Tab wird fokussiert), als Sitzung speichern, umbenennen. Die Zuordnung gilt pro URL und überlebt Neustarts.
 - **✨ Tabs sortieren:** KI schlägt Themen vor, „In Live-Ordner übernehmen“, „Rückgängig“ stellt den Stand davor wieder her.
 - **Leiste auf Webseiten:** Einstellungen → „Leiste auf Webseiten einschalten“ (fragt um Zugriff auf alle Seiten; ohne Zustimmung bleibt sie aus). Ausblenden pro Domain, Einklappen mit Alt+Umschalt+B, im Vollbild aus. Nur ein kleiner Ausschnitt (Titel, Domains, Ordner) geht an die Seite, nie der volle Zustand.
+
+## Schnelle Wege (v0.5.2)
+- **Link ablegen:** Adresse kopieren und im Neuen Tab Strg+V drücken, oder einen Link (Adressleiste, andere Seite) auf eine Spalte ziehen. Landet im gezeigten Ordner, sonst in der ersten Spalte. Die Meldung nennt den Ordner und hat „Rückgängig“.
+- **Alle Tabs sichern:** ⤓ im Kopf oder Rechtsklick auf eine Seite → „Alle Tabs als Lesezeichen-Ordner speichern“. Neuer Ordner „Tabs <Datum>“, mit Rückgängig.
+- **Auf Live-Ordner ziehen:** Einen Link auf einen Live-Ordner in der Leiste ziehen ordnet ihn zu. Im Ordner-Menü: „Als Tab-Gruppe öffnen“ (Chromium/Brave, Firefox ab 139).
+- **Pomodoro:** ▣ → Timer → „Pomodoro“ ankreuzen. Arbeit und Pause wechseln sich ab, die Benachrichtigung kommt auch bei geschlossenem Neuen Tab.
+- **Sicherungsdatei:** Nach 14 Tagen ohne Export erinnert ein Hinweis an eine Kopie außerhalb des Browsers („Später“ = 14 Tage Ruhe).
+- **Seitenleiste:** Ansicht „Live-Ordner“ zeigt dieselbe Leiste senkrecht.
 
 ## Datenschutz
 Alles bleibt im Browser (`storage.local`). Nichts wird an Dritte gesendet, außer du schaltest OpenRouter ein: dann gehen nur Tab-Titel und Domains an OpenRouter. Mit Ollama bleibt es auf deinem Rechner. Kein Konto, kein Lizenzschlüssel, keine Telemetrie.
