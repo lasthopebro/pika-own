@@ -1,6 +1,6 @@
 # AGENTS.md – pika-own (für Claude, Hermes, Codex, OpenCode und Menschen)
 
-Lesezeichen-Board als Neuer Tab plus horizontale Leiste, Firefox und Chromium (MV3, Vanilla-JS, kein Build). Pläne: `openspec/changes/<change>/` (proposal, specs, design, tasks). Stand und Reihenfolge: v0.3 → v0.4 → v0.5.
+Lesezeichen-Board als Neuer Tab plus horizontale Leiste, Firefox und Chromium (MV3, Vanilla-JS, kein Build). Pläne: `openspec/changes/<change>/` (proposal, specs, design, tasks). Veröffentlicht: v0.5.1 (Release), in `main`: v0.5.2, Audit-Fixes, v0.3-Rest (Papierkorb, Dubletten). **Reihenfolge der offenen Changes:** `v06-feinschliff` → `v07-widget-fundament` → `v08-widgets`; `v06-paritaet-rest` ist ein Sammelbecken, daraus nur einzelne Punkte in eigene Changes ziehen. Skill für die Wiederaufnahme: `pika-weiter`.
 
 ## Technik (festgelegt, nicht ohne Change ändern)
 - **Sprache und Laufzeit:** Vanilla-JavaScript (ES-Module), Manifest V3, kein Framework, kein Bundler, kein Build-Schritt. Der Ordner ist direkt als Erweiterung ladbar.
@@ -32,6 +32,13 @@ Bauer und Prüfer sind immer verschiedene Agenten.
 
 ## Übergabe
 Kommentare in Issue/PR: `von -> an | TYP | Change | Status | nächste Aktion`. Nach jedem Schritt Häkchen in `tasks.md` und kurzer Kommentar. Wiederaufnahme nach Unterbrechung: „lies AGENTS.md, nimm den ersten offenen Change mit offenen Tasks“.
+
+### Modellstufen (damit auch günstigere Modelle sicher weiterarbeiten)
+- **[stark]** markierte Tasks (Speicher/`lib/store.js`, Berechtigungen/`manifest.json`, Content-Script/`content/`, `lib/bar.js`, Hintergrund-Alarme): nur ein starkes Modell, Prüfung durch einen anderen Agenten.
+- **[günstig]** markierte Tasks: darf ein günstiges Modell allein, wenn es nur die im Task genannten Dateien ändert.
+- **Task-Größe:** höchstens 2 Dateien und etwa 80 geänderte Zeilen; jeder Task nennt Funktion, Test und Prüfbefehl. Größer? Erst im Plan teilen, nicht im Code.
+- **Nie** Tests abschwächen oder löschen, um grün zu werden; nie `--no-verify`, nie Force-Push, nie direkt auf `main`. Rot und unklar → Task offen lassen, Kommentar im PR mit Fehlermeldung.
+- **Fertig heißt:** Häkchen in `tasks.md`, `npm test` grün, genannter Prüfbefehl grün, CI grün.
 
 ## Befehle
 - Tests: `npm test`; Lint: `npm run lint`
