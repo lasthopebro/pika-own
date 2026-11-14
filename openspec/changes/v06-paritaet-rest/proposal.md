@@ -1,6 +1,6 @@
 # Proposal
 
-> **Ersetzt durch `v09-sicherung`, `v10-galerie`, `v11-erste-schritte` und `v12-kopieren-suchen`** (Stand v0.8.0). Bereits gebaut: Strg+V/Hineinziehen, Tabs als Ordner, Pomodoro, Benachrichtigungen, Foto-Widget (als Adressen), Einstellungssuche. Gestrichen: schwebende/angedockte Werkzeugleiste, weitere Sprachen. Popup bleibt in `v03-fundament-und-board` 4.8. Dieser Change wird nicht mehr umgesetzt; Archivierung entscheidet der Planpfleger.
+> **Ersetzt durch `v09-sicherung`, `v10-galerie`, und `v11-erste-schritte`** (v09 bis v11) (Stand v0.8.0). Bereits gebaut: Strg+V/Hineinziehen, Tabs als Ordner, Pomodoro, Benachrichtigungen, Foto-Widget (als Adressen), Einstellungssuche. Gestrichen: schwebende/angedockte Werkzeugleiste, weitere Sprachen. Gestrichen (Entscheidung): Kopierformate für Ordner, „Im Web suchen“, Toolbar-Popup. Dieser Change wird nicht mehr umgesetzt; Archivierung entscheidet der Planpfleger.
 
 ## Why
 

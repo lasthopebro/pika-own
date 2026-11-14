@@ -1,6 +1,6 @@
 # Tasks
 
-> Ersetzt durch `v09-sicherung`, `v10-galerie`, `v11-erste-schritte`, `v12-kopieren-suchen`. Haken = bereits gebaut (Stand v0.8.0); Rest siehe Verweise.
+> Ersetzt durch `v09-sicherung`, `v10-galerie`, `v11-erste-schritte` (v09 bis v11). Haken = bereits gebaut (Stand v0.8.0); Rest siehe Verweise.
 
 ## 1. Branch und Übergabe
 
@@ -15,10 +15,10 @@
 
 ## 3. Kopieren, Einfügen, Tabs
 
-- [ ] 3.1 `lib/clipboard-formats.js`: Klartext, Markdown, HTML, CSV, Baum; „Links kopieren“ (Markdown für einen Link und „Links kopieren“ seit v0.6.0/v0.5.2 vorhanden; Ordnerformate -> `v12-kopieren-suchen`)
+- [ ] 3.1 `lib/clipboard-formats.js`: Klartext, Markdown, HTML, CSV, Baum; „Links kopieren“ (Markdown für einen Link und „Links kopieren“ seit v0.6.0/v0.5.2 vorhanden; Ordnerformate gestrichen, Entscheidung)
 - [x] 3.2 Strg+V und Hineinziehen von Links; Rückgängig-Meldung (`addLinks`, `paste`, `dropOn` in `newtab.js`, v0.5.2)
 - [x] 3.3 „Offene Tabs als Ordner“ mit optionaler `tabs`-Berechtigung (`saveTabsFolder`, v0.5.2; `tabs` ist seither Pflicht-Berechtigung)
-- [ ] 3.4 Popup: „Gespeichert in …“, „Alle Tabs speichern“, 8 neueste; Board über Popup öffnen (bleibt `v03-fundament-und-board` 4.8; „Gespeichert in …“ nur als Meldung des Kontextmenüs vorhanden)
+- [ ] 3.4 Popup: „Gespeichert in …“, „Alle Tabs speichern“, 8 neueste; Board über Popup öffnen (gestrichen, Entscheidung; `v03` 4.8 entfällt; „Gespeichert in …“ nur als Meldung des Kontextmenüs vorhanden)
 
 ## 4. Widgets und Benachrichtigungen
 
@@ -39,6 +39,6 @@
 
 ## 7. Prüfung
 
-- [ ] 7.1 Unit-Tests für Formate, Link-Einfügen, Sicherungs-Erinnerungsplan (-> je in v09, v11, v12)
+- [ ] 7.1 Unit-Tests für Formate, Link-Einfügen, Sicherungs-Erinnerungsplan (-> je in v09, v10, v11)
 - [ ] 7.2 Chromium-E2E: Galerie, Einfügen, Popup; Firefox-Checkliste von Hand (-> je in den Ersatz-Changes)
 - [ ] 7.3 README und Draft-PR aktualisieren, auf „Ready“ setzen (-> je in den Ersatz-Changes)
