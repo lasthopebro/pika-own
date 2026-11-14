@@ -14,8 +14,11 @@ flow('widgets', async ({ ctx, ok, newtab, until }) => {
     await page.locator('dialog select').selectOption(type)
     await page.locator('dialog button.primary').click()
     await page.waitForSelector('dialog h3:has-text("Widget: ' + type + '")')
-    await fill?.(page.locator('dialog'))
-    await page.locator('dialog button.primary').click()
+    // Den Typ-Dialog entfernt erst ein asynchrones close-Ereignis: kurz stehen zwei Dialoge im DOM (nur auf langsamen Runnern sichtbar).
+    // Darum immer im Dialog mit der passenden Überschrift arbeiten, nie in „irgendeinem“ dialog.
+    const dlg = page.locator('dialog', { has: page.locator('h3', { hasText: 'Widget: ' + type }) })
+    await fill?.(dlg)
+    await dlg.locator('button.primary').click()
     await page.waitForSelector('dialog', { state: 'detached' })
     // Der Dialog schließt vor dem Speichern; das Widget erscheint erst danach.
     await page.waitForFunction((n) => document.querySelectorAll('.widget').length > n, n)
