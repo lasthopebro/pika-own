@@ -9,7 +9,8 @@ const el = (tag) => {
   Object.assign(e, { append: (...k) => e.children.push(...k), replaceChildren: (...k) => { e.children = k }, setAttribute: (k, v) => { e.attrs[k] = v }, addEventListener() {}, remove() {}, focus() {} })
   return e
 }
-globalThis.document = { createElement: el }
+globalThis.document = { createElement: el, addEventListener() {}, removeEventListener() {} }
+globalThis.addEventListener = globalThis.removeEventListener = () => {}
 globalThis.PikaIcons = { icon: () => el('svg') }
 const { WIDGETS } = await import('../widgets/index.js')
 

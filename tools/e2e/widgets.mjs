@@ -126,6 +126,17 @@ flow('widgets', async ({ ctx, ok, newtab, until, poll }) => {
   await T.locator('li', { hasText: 'Zwei' }).locator('button[aria-label^="Löschen"]').click()
   ok(await until(page, () => ![...document.querySelectorAll('.todo .ttext')].some((x) => x.textContent === 'Zwei')) && !(await stored()).find((w) => w.type === 'todo').items.some((i) => i.t === 'Zwei'), 'Todo: Löschen entfernt den Punkt auch aus dem Speicher')
 
+  // Fremder Speicherstand beim Tippen: Text und Datum im Todo-Feld (nicht abgeschickt) überleben ein fremdes Ereignis (Hintergrund/anderer Tab)
+  await T.locator('input[type=text]').fill('Entwurf'); await T.locator('input[type=datetime-local]').fill('2031-02-03T04:05')
+  await page.evaluate(() => { window.__ev = 0; chrome.storage.onChanged.addListener(() => window.__ev++) }) // läuft nach dem Listener des Neuen Tabs
+  const other = await newtab(); await other.waitForSelector('.widget')
+  await other.evaluate(async (id) => { const { patchWidget } = await import('./lib/store.js'); await patchWidget(id, (w) => { w.n = 77 }) }, (await stored()).find((w) => w.type === 'counter').id)
+  ok(await until(page, () => window.__ev > 0), 'Tippen: fremdes Speicherereignis ist im Neuen Tab angekommen')
+  await page.evaluate(async () => { const { load } = await import('./lib/store.js'); await load(); await load() }) // ein ggf. verspätetes Neuzeichnen wäre jetzt durch
+  const tv = [await T.locator('input[type=text]').inputValue(), await T.locator('input[type=datetime-local]').inputValue()]; ok(tv[0] === 'Entwurf' && tv[1] === '2031-02-03T04:05', 'Tippen: ungespeicherter Todo-Text und Datum bleiben nach fremdem Speicherstand erhalten ' + JSON.stringify(tv))
+  await other.close()
+  await T.locator('input[type=text]').fill(''); await T.locator('input[type=datetime-local]').fill('')
+
   // Todo-Alarme im Hintergrund: Fälligkeit in 2 s -> genau eine Benachrichtigung, ein vor der Zeit gelöschter Punkt meldet nichts
   const wid = (await stored()).find((w) => w.type === 'todo').id
   await page.evaluate(async (wid) => {

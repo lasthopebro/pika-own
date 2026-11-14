@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { sortTodos, dueSoon, isOverdue, planTodoAlarms } from '../lib/todo.js'
+import { sortTodos, dueSoon, isOverdue, planTodoAlarms, overdueUnnotified, BURST } from '../lib/todo.js'
 
 const NOW = 1_000_000
 const it = (id, extra = {}) => ({ id, t: id, done: false, ...extra })
@@ -31,4 +31,14 @@ test('planTodoAlarms: Namen, Reihenfolge nach Datum, nur offene ungemeldete, hö
   assert.deepEqual(plan[0], { name: 'todo|w1|b', wid: 'w1', iid: 'b', when: 10 })
   assert.deepEqual(planTodoAlarms(ws, 2).map((p) => p.iid), ['b', 'f'])
   assert.deepEqual(planTodoAlarms(undefined), [])
+})
+
+test('overdueUnnotified: nur offene, fällige, nicht gemeldete Punkte aller Todo-Widgets (Sammelmeldung ab mehr als BURST)', () => {
+  const ws = [{ widgets: [null, { type: 'notes', items: [it('n', { due: 1 })] }, { type: 'todo', items: [it('a', { due: 1 }), it('b', { due: 2, notified: true }), it('c', { due: 3, done: true }), it('d', { due: NOW + 9 }), it('e')] }] },
+    { widgets: [{ type: 'todo', items: [it('f', { due: NOW }), it('g', { due: 5 }), it('h', { due: 6 })] }] }, {}]
+  const late = overdueUnnotified(ws, NOW)
+  assert.deepEqual(late.map((i) => i.id), ['a', 'f', 'g', 'h'])
+  assert.ok(late.length > BURST)
+  assert.equal(late[0], ws[0].widgets[2].items[0], 'dieselben Objekte, damit notified gesetzt werden kann')
+  assert.deepEqual(overdueUnnotified(undefined, NOW), [])
 })

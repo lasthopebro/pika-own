@@ -6,7 +6,7 @@ import { loadItems } from './lib/dials.js'
 import { groupHistory, normUrl, isExcluded } from './lib/logic.js'
 import { OPS, liveItems } from './lib/folders.js'
 import { timerNext } from './lib/quick.js'
-import { dueSoon, planTodoAlarms } from './lib/todo.js'
+import { dueSoon, planTodoAlarms, overdueUnnotified, BURST } from './lib/todo.js'
 import { menuSpecs, menuKey, LF_PREFIX } from './lib/ctxmenu.js'
 
 const note = (id, message) => B.notifications.create(id, { type: 'basic', iconUrl: B.runtime.getURL('icons/icon-128.png'), title: 'pika-own', message: message.slice(0, 200) })
@@ -33,9 +33,18 @@ async function todoDone(wid, iid) {
     i.notified = true
   })
 }
+// Mehr als BURST überfällige Punkte (z. B. nach Browserstart): eine Sammelmeldung, alle auf notified. Wirft note(), bleibt notified ungesetzt (nächster Versuch).
+const todoBurst = () => update(async (S) => {
+  const late = overdueUnnotified(S.workspaces, Date.now() + 1000)
+  if (late.length <= BURST) return false
+  await note('todo|sammel', `${late.length} Todos überfällig`)
+  late.forEach((i) => { i.notified = true })
+  return true
+})
 // Alarme mit den Todo-Daten abgleichen: veraltete löschen, künftige stellen, überfällige (z. B. nach Browserstart) nachholen. Nacheinander, damit sich zwei Läufe nicht überschneiden.
 let todoQ = Promise.resolve()
 const syncTodos = () => (todoQ = todoQ.then(async () => {
+  await todoBurst() // danach ist die Masse gemeldet; der Plan unten enthält sie nicht mehr
   const plan = planTodoAlarms((await load()).workspaces), want = new Set(plan.map((p) => p.name))
   for (const a of await B.alarms.getAll()) if (a.name.startsWith('todo|') && !want.has(a.name)) await B.alarms.clear(a.name)
   for (const p of plan) { if (p.when <= Date.now()) await todoDone(p.wid, p.iid); else B.alarms.create(p.name, { when: p.when }) }

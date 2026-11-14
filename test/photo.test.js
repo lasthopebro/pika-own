@@ -6,6 +6,12 @@ test('httpsUrl: nur https mit Host', () => {
   assert.equal(httpsUrl(' https://example.org/a.png '), 'https://example.org/a.png')
   for (const bad of ['javascript:alert(1)', 'http://example.org/a.png', 'data:image/png;base64,AAAA', 'file:///c:/a.png', 'ftp://x/y', 'https://', 'kein url', '', null, undefined]) assert.equal(httpsUrl(bad), null, String(bad))
 })
+test('httpsUrl: Zugangsdaten in der Adresse und über 2048 Zeichen werden abgelehnt', () => {
+  for (const bad of ['https://user:pw@example.org/', 'https://user@example.org/a.png', 'https://:pw@example.org/']) assert.equal(httpsUrl(bad), null, bad)
+  const ok = 'https://example.org/' + 'a'.repeat(2048 - 'https://example.org/'.length)
+  assert.equal(httpsUrl(ok), ok); assert.equal(httpsUrl(ok + 'a'), null)
+  assert.match(parsePhotoUrls('https://u:p@example.org/').error, /https/)
+})
 test('parsePhotoUrls: gültige Zeilen, Dubletten fallen weg, Leerzeilen ignoriert', () => {
   assert.deepEqual(parsePhotoUrls('https://a.example/1.jpg\n\n https://a.example/1.jpg \r\nhttps://b.example/2.jpg'), { urls: ['https://a.example/1.jpg', 'https://b.example/2.jpg'] })
   assert.deepEqual(parsePhotoUrls(''), { urls: [] })

@@ -23,4 +23,4 @@ Regeln wie in `v07-widget-fundament`: höchstens 2 Dateien und etwa 80 Zeilen je
 ## 5. Abschluss
 
 - [x] 5.1 [günstig] README (Widgets), `CHANGELOG.md` 0.8.0, Version in `manifest.json`/`package.json`. Prüfen: `npm run lint`, `node tools/check-permissions.mjs`.
-- [ ] 5.2 [stark] Review durch getrennten Prüfer, CI grün, `openspec validate v08-widgets`, PR auf „Ready“.
+- [x] 5.2 [stark] Review durch getrennten Prüfer, CI grün, `openspec validate v08-widgets`, PR auf „Ready“.

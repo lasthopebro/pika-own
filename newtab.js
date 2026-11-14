@@ -214,6 +214,7 @@ function widgetEl(w) {
     const def = WIDGETS[w?.type]
     if (!def) throw new Error('Unbekannter Widget-Typ')
     const box = h('div', { class: 'widget', oncontextmenu: removeMenu(w) }, h('div', { class: 'wtitle' }, def.title(w)), big, sub)
+    box.dataset.wid = w.id
     def.render(w, {
       big, sub, box, h, toast, ask, icon: I, redraw: renderWidgets,
       // erster Lauf sofort (wirft er, wird es eine Fehlerkarte); später ersetzt ein Fehler nur diesen Kasten
@@ -797,10 +798,15 @@ function syncNewtabBar() {
 function render() { renderHead(); renderNag(); renderPinned(); renderTags(); renderWidgets(); renderBars(); renderBoard() }
 // Andere Schreiber (Hintergrund: Erinnerung erledigt, Pomodoro-Phase, Sitzung; Leiste: Live-Ordner): neu laden,
 // sonst überschreibt persist() deren Stand. Bei offenem Dialog oder Ziehen nur deren Felder übernehmen (absorb).
+// Ungespeicherte Eingabe in einem Widget: Fokus im Feld, Text/Datum im Todo-Feld oder Notiztext, der vom gespeicherten abweicht.
+const typing = () => [...document.querySelectorAll('#widgets [data-wid]')].some((box) => {
+  const w = S.workspaces.flatMap((x) => x.widgets || []).find((x) => x?.id === box.dataset.wid)
+  return [...box.querySelectorAll('input[type=text],input[type=datetime-local],textarea')].some((el) => el === document.activeElement || (el.tagName === 'TEXTAREA' ? el.value !== (w?.text || '') : !!el.value))
+})
 B.storage.onChanged.addListener(async (ch, area) => {
   const nv = ch.pika?.newValue
   if (area !== 'local' || !nv || !S || own.delete(JSON.stringify(nv))) return
-  if (document.querySelector('dialog[open]') || drag) return absorb(S, nv, Date.now())
+  if (document.querySelector('dialog[open]') || drag || typing()) return absorb(S, nv, Date.now())
   S = await load(); render()
 })
 ;(async () => {
