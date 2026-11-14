@@ -565,6 +565,7 @@ function galDrop(el, parentId, title) {
 // Ablegen auf einen Ordner (Seitenleiste oder Ordner-Kachel): bestehende dropOn-Verschiebung, danach Meldung mit Rückgängig.
 async function dropSide(parentId, title, ev) {
   const n = byId.get(drag), from = n && { parentId: n.parentId, index: n.index }
+  if (n && n.parentId === parentId) { drag = null; return } // eigener Elternordner: nichts umsortieren
   await dropOn(parentId, undefined, ev)
   if (!n || n.id === parentId) return
   const now = (await B.bookmarks.get(n.id).catch(() => []))[0]
@@ -581,6 +582,7 @@ function galTile(n) {
     if (!n.virtual) { a.draggable = true; a.addEventListener('dragstart', () => { drag = n.id }); a.addEventListener('dragend', () => { drag = null }) }
     const to = n.virtual ? (n.id === 'virtual' ? barOf(T).id : null) : n.id
     if (to) galDrop(a, to, n.title)
+    else { a.addEventListener('dragover', (e) => e.preventDefault()); a.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); drag = null }) } // virtuell: nichts ablegen, aber auch nicht die Seite öffnen
   }
   a.dataset.id = n.id
   return a
@@ -590,23 +592,34 @@ function drawGal(focusId) {
   gal.path = cleanPath(gal.path, nodes) // gelöschter Ordner: Pfad bis zur letzten gültigen Stufe kürzen
   const cs = crumbs(gal.path, nodes), cur = gal.path.length ? nodes.get(gal.path.at(-1)) : { children: home }
   const all = filterChildren(children(cur), gal.q), shown = all.slice(0, gal.limit)
-  const had = el.grid.contains(document.activeElement) ? document.activeElement.dataset.id : null
+  const act = document.activeElement, had = el.grid.contains(act) ? act.dataset.id : null
+  const keepSide = el.side.contains(act) ? act.dataset.id : null, keepPath = el.path.contains(act) ? act.dataset.i : null
   el.root.dataset.mode = st.galleryMode; el.root.dataset.d = st.galleryDensity
   for (const b of el.ctl.querySelectorAll('[data-k]')) b.setAttribute('aria-pressed', String(st[b.dataset.k] === b.dataset.v))
-  el.path.replaceChildren(h('button', { type: 'button', 'aria-current': cs.length ? null : 'page', onclick: () => galGo([]) }, 'Home'),
-    ...cs.flatMap((c, i) => [h('span', { 'aria-hidden': 'true' }, '›'), h('button', { type: 'button', 'aria-current': i === cs.length - 1 ? 'page' : null, onclick: () => galGo(gal.path.slice(0, i + 1)) }, c.title)]))
+  const pk = JSON.stringify(cs.map((c) => [c.id, c.title])) // Pfad und Seitenleiste nur bei Änderung neu zeichnen, nicht bei jedem Tastendruck im Suchfeld
+  if (el.path.dataset.k !== pk) {
+    el.path.dataset.k = pk
+    el.path.replaceChildren(h('button', { type: 'button', 'data-i': '-1', 'aria-current': cs.length ? null : 'page', onclick: () => galGo([]) }, 'Home'),
+      ...cs.flatMap((c, i) => [h('span', { 'aria-hidden': 'true' }, '›'), h('button', { type: 'button', 'data-i': String(i), 'aria-current': i === cs.length - 1 ? 'page' : null, onclick: () => galGo(gal.path.slice(0, i + 1)) }, c.title)]))
+  }
   el.grid.setAttribute('aria-label', cs.length ? cs.at(-1).title : 'Home')
   el.grid.replaceChildren(...shown.map(galTile),
     all.length > shown.length ? h('button', { type: 'button', class: 'gmore', onclick: () => { gal.limit += GAL_STEP; drawGal(all[shown.length].id) } }, `Mehr zeigen (${all.length - shown.length} weitere)`) : null,
     all.length ? null : h('p', { class: 'muted' }, gal.q ? `Keine Treffer für „${gal.q}“.` : 'Dieser Ordner ist leer.'))
   el.status.textContent = `${all.length} ${all.length === 1 ? 'Eintrag' : 'Einträge'}`
   const here = gal.path.at(-1)
-  el.side.replaceChildren(h('b', { class: 'muted' }, 'Ordner (hierher ziehen)'), ...folderList(home, barOf(T).id).map((f) => {
-    const b = h('button', { type: 'button', class: 'gs' + (f.id === here ? ' on' : ''), style: { '--d': f.depth }, title: f.title, onclick: () => galGo(pathTo(f.id, byId, home.map((c) => c.id))) }, I('folder'), h('span', {}, f.title))
+  const fl = folderList(home, barOf(T).id), sk = JSON.stringify([here, fl.map((f) => [f.id, f.depth, f.title])])
+  if (el.side.dataset.k !== sk) {
+  el.side.dataset.k = sk
+  el.side.replaceChildren(h('b', { class: 'muted' }, 'Ordner (hierher ziehen)'), ...fl.map((f) => {
+    const b = h('button', { type: 'button', 'data-id': f.id, class: 'gs' + (f.id === here ? ' on' : ''), style: { '--d': f.depth }, title: f.title, onclick: () => galGo(pathTo(f.id, byId, home.map((c) => c.id))) }, I('folder'), h('span', {}, f.title))
     galDrop(b, f.id, f.title)
     return b
   }))
-  if (focusId !== undefined || had) (((focusId ?? had) && el.grid.querySelector(`[data-id="${CSS.escape(focusId ?? had)}"]`)) || el.grid.querySelector('.item'))?.focus()
+  }
+  if (focusId !== undefined || had) (((focusId ?? had) && el.grid.querySelector(`[data-id="${CSS.escape(focusId ?? had)}"]`)) || el.grid.querySelector('.item') || el.q).focus()
+  else if (keepSide) (el.side.querySelector(`[data-id="${CSS.escape(keepSide)}"]`) || el.q).focus()
+  else if (keepPath != null) (el.path.querySelector(`[data-i="${keepPath}"]`) || el.q).focus()
 }
 
 /* ---------- Auswahlmodus, Ansicht ---------- */
@@ -664,6 +677,7 @@ function palette() {
 addEventListener('keydown', (e) => {
   if (document.querySelector('dialog[open]') || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.ctrlKey || e.metaKey) return
   const k = e.key.toLowerCase()
+  if (gal && (k === 's' || k === 'n')) return // Auswahlmodus und neuer Workspace gehören zum Board dahinter
   if (gal && (k === 'escape' || k === 'v')) { if (k === 'v') galClose(); else galEsc(); return } // die Galerie liegt vor Auswahl, Fokus und Tag-Filter
   if (k === 'f') { e.preventDefault(); palette() }
   else if (k === 's') toggleSel()
@@ -847,7 +861,7 @@ function settingsDlg() {
     { name: 'hidden', label: 'Ausgeblendete Domains', value: s.hidden.join(', '), placeholder: 'a.com, b.org' },
     act('Schnellwahl', 'Schnellwahl-Leisten …', barsDlg),
     { section: 'Board' },
-    { name: 'view', label: 'Ansicht', type: 'select', value: s.view, options: [['board', 'Board'], ['gallery', 'Galerie'], ['compact', 'Kompakte Zeilen']] },
+    { name: 'view', label: 'Ansicht', type: 'select', value: s.view, options: [['board', 'Board'], ['gallery', 'Spalten-Raster'], ['compact', 'Kompakte Zeilen']] },
     { name: 'galleryMode', label: 'Galerie (Taste V): Darstellung', type: 'select', value: s.galleryMode, options: [['grid', 'Raster'], ['list', 'Liste']] },
     { name: 'galleryDensity', label: 'Galerie (Taste V): Dichte', type: 'select', value: s.galleryDensity, options: [['s', 'Klein'], ['m', 'Mittel'], ['l', 'Groß']] },
     { name: 'discover', label: 'Spalten „Zuletzt hinzugefügt“ und „Meistbesucht“', type: 'checkbox', value: s.discover },

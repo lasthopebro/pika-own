@@ -8,7 +8,7 @@
 - **Suche je Ordner** (Titel und Adresse, Groß/Klein egal) mit Pfeiltasten und Enter; Palette `/Ordner` springt in der Galerie in den Ordner. Eine Änderung aus einem anderen Neuen Tab verwirft den Suchtext nicht.
 - **Raster oder Liste** und **Dichte** S/M/L, in der Galerie-Leiste und unter Einstellungen → Board (`galleryMode`, `galleryDensity`, ungültige Werte fallen auf Raster/mittel zurück).
 - **Ordner als Ablageziele:** Kachel auf einen Ordner der Seitenleiste oder auf eine Ordner-Kachel ziehen verschiebt das Lesezeichen, mit Rückgängig. Mehr als 300 Einträge je Ordner: „Mehr zeigen“.
-- Die Spalten-Ansicht „Galerie“ im Board (Einstellungen → Ansicht) bleibt wie sie war; die Taste `V` öffnet jetzt das Vollbild statt sie umzuschalten.
+- Die Spalten-Ansicht „Spalten-Raster“ im Board (früher „Galerie“ genannt) (Einstellungen → Ansicht) bleibt wie sie war; die Taste `V` öffnet jetzt das Vollbild statt sie umzuschalten.
 - Keine neue Berechtigung, keine Abhängigkeit. Neu: `lib/gallery.js` mit Tests; Browser-Test `gallery`.
 
 ## 0.9.0

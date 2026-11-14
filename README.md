@@ -44,7 +44,7 @@ Taste `V` oder Kopf-Knopf „Board / Galerie“ öffnet das Vollbild, `V` oder `
 - **Suche je Ordner:** Das Feld filtert die Kacheln des gezeigten Ordners nach Titel und Adresse. Pfeil runter springt auf die Kacheln, Enter öffnet den ersten Treffer, Pfeiltasten bewegen sich durch die Kacheln. Palette `F` → `/Name` springt in der Galerie in den Ordner.
 - **Raster oder Liste, Dichte S/M/L:** in der Galerie-Leiste oder unter Einstellungen → Board; bleibt nach Neuladen erhalten. Bei mehr als 300 Einträgen im Ordner erscheint „Mehr zeigen“.
 - **Ablegen:** Kachel auf einen Ordner links oder auf eine Ordner-Kachel ziehen verschiebt das Lesezeichen; „Rückgängig“ in der Meldung stellt es zurück.
-- Die Raster-Ansicht der Spalten im Board (Einstellungen → Ansicht → Galerie) bleibt unverändert. Keine neue Berechtigung.
+- Die Raster-Ansicht der Spalten im Board (Einstellungen → Ansicht → Spalten-Raster) bleibt unverändert. Keine neue Berechtigung.
 
 ## Eigenes Widget bauen (v0.7)
 Ein Widget ist eine Datei `widgets/<typ>.js` mit einem Standard-Export und ein Eintrag in `widgets/index.js`; `newtab.js` bleibt unberührt.

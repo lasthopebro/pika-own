@@ -128,4 +128,52 @@ flow('gallery', async ({ id, ok, newtab, seed, until, poll }) => {
   await page.waitForSelector('dialog', { state: 'detached' })
   await reopen()
   ok(await until(page, () => document.getElementById('gal').dataset.mode === 'list' && document.getElementById('gal').dataset.d === 'l'), 'Galerie übernimmt die Werte aus den Einstellungen')
+
+  // Review-Fixes. Fokus auf Seitenleisten-/Pfadknopf bleibt bei Fremdänderung, auch wenn die Leiste neu gezeichnet wird
+  const barId = (await bm('Lernen'))[0] && (await page.evaluate((i) => chrome.bookmarks.get(i).then((r) => r[0].parentId), lernen))
+  const other = await newtab()
+  const fremd = (t) => other.evaluate(([p, t]) => chrome.bookmarks.create({ parentId: p, title: t, url: 'https://example.com/' + t }), [dev, t])
+  const devCount = async () => (await page.locator('#gal .gfolder', { hasText: /^Dev/ }).first().getAttribute('aria-label')) || ''
+  await page.locator('#gal .gs', { hasText: /^Lernen$/ }).focus()
+  await fremd('Fremd1')
+  ok(await poll(async () => /, 5 Lesezeichen/.test(await devCount())), 'Fremdänderung kam an (Dev: 5 Lesezeichen)')
+  ok(await page.evaluate((l) => document.activeElement?.dataset.id === l && document.activeElement.classList.contains('gs'), lernen), 'Fokus bleibt auf dem Seitenleistenknopf trotz Fremdänderung')
+  await page.locator('#gal .gpath button').first().focus()
+  await fremd('Fremd2')
+  ok(await poll(async () => /, 6 Lesezeichen/.test(await devCount())), 'Zweite Fremdänderung kam an (Dev: 6 Lesezeichen)')
+  ok(await page.evaluate(() => document.activeElement?.dataset.i === '-1' && document.activeElement.closest('.gpath') !== null), 'Fokus bleibt auf dem Pfadknopf trotz Fremdänderung')
+  // Leerer Zielordner: Fokus fällt auf das Suchfeld, nicht auf body
+  await page.evaluate((p) => chrome.bookmarks.create({ parentId: p, title: 'Leer' }), barId)
+  await page.locator('#gal .gs', { hasText: /^Leer$/ }).waitFor()
+  await page.locator('#gal .gs', { hasText: /^Leer$/ }).click()
+  ok(await poll(async () => (await crumbs()).join('|') === 'Home|Leer') && await page.evaluate(() => document.activeElement?.classList.contains('gq')), 'Leerer Ordner über Seitenleiste: Fokus auf dem Suchfeld')
+  // Seitenleiste wird beim Tippen im Suchfeld nicht neu gezeichnet
+  await page.evaluate(() => { window.__gs = document.querySelector('#gal .gs'); window.__gp = document.querySelector('#gal .gpath button') })
+  await page.locator('#gal .gq').fill('abc')
+  ok(await page.evaluate(() => window.__gs.isConnected && window.__gp.isConnected), 'Suchtext zeichnet Seitenleiste und Pfad nicht neu')
+  await page.locator('#gal .gq').fill('')
+  // S und N wirken nicht hinter der Galerie
+  await page.evaluate(() => document.activeElement.blur())
+  await page.keyboard.press('s'); await page.keyboard.press('n')
+  await page.waitForTimeout(300)
+  ok(await page.evaluate(() => document.getElementById('selbar').hidden && !document.querySelector('dialog[open]')), 'S und N tun bei offener Galerie nichts (kein Auswahlmodus, kein Dialog)')
+  // Ziehen auf den eigenen Elternordner sortiert nicht um
+  await page.locator('#gal .gpath button', { hasText: 'Home' }).click()
+  await tile('Dev').click(); await poll(async () => (await crumbs()).join('|') === 'Home|Dev')
+  const idx = () => page.evaluate((t) => chrome.bookmarks.search({ title: t }).then((r) => r[0].index), 'GitHub')
+  const i0 = await idx()
+  await tile('GitHub').dragTo(page.locator('#gal .gs', { hasText: /^Dev$/ }))
+  await page.waitForTimeout(400)
+  ok((await idx()) === i0 && (await page.locator('.toast', { hasText: 'Verschoben' }).count()) === 0, 'Ziehen auf den eigenen Elternordner ändert nichts und meldet nichts')
+  // Virtuelle Kachel (Meistbesucht) nimmt Drops an (preventDefault), legt aber nichts ab
+  await page.evaluate(async (id) => { const { update } = await import(`chrome-extension://${id}/lib/store.js`); await update((S) => { S.settings.discover = true }) }, id)
+  await page.locator('#gal .gpath button', { hasText: 'Home' }).click()
+  await tile('Meistbesucht').waitFor()
+  const prevented = await page.evaluate(() => {
+    const t = [...document.querySelectorAll('#gal .gfolder')].find((x) => x.querySelector('.t').textContent === 'Meistbesucht')
+    const f = (type) => { const e = new DragEvent(type, { bubbles: true, cancelable: true }); t.dispatchEvent(e); return e.defaultPrevented }
+    return [f('dragover'), f('drop')]
+  })
+  ok(prevented.join() === 'true,true', 'Virtuelle Kachel verhindert den Browser-Standard bei dragover und drop')
+  await other.close()
 })
