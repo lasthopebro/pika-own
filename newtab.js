@@ -1,5 +1,5 @@
 import { B } from './lib/api.js'
-import { load, update } from './lib/store.js'
+import { load, update, patchWidget, addWidget as storeAddWidget, removeWidget } from './lib/store.js'
 import { applyTopics, undo as undoLf } from './lib/folders.js'
 import { h, toast, menu, dialog, ask, tile } from './lib/ui.js'
 import { domainOf, groupHistory, renameName, parseAiTopics, score, parseBars, barsToText } from './lib/logic.js'
@@ -11,7 +11,8 @@ import * as ai from './lib/ai.js'
 import * as ollama from './lib/ollama.js'
 import { resumeCards } from './lib/resume.js'
 import { trashAdd, restoreParent, findDupes, discovery, mdLink } from './lib/board.js'
-import { urlsFromText, timerLeft, backupNagDue, NAG_MS, absorb } from './lib/quick.js'
+import { urlsFromText, backupNagDue, NAG_MS, absorb } from './lib/quick.js'
+import { WIDGETS } from './widgets/index.js'
 
 let S, T, histItems = [], filterTag = '', selMode = false, focus = null, drag = null, importing = false
 const own = new Set() // selbst geschriebene Stände (JSON), damit deren Änderungsereignis nicht neu lädt
@@ -19,7 +20,14 @@ const byId = new Map()
 const sel = new Set()
 const $ = (id) => document.getElementById(id)
 // lf/snapshots schreiben auch Hintergrund und Leiste: nie mit altem Stand überschreiben. own = zuletzt selbst geschrieben.
-const persist = () => update((cur) => { Object.assign(cur, S, { lf: cur.lf, snapshots: cur.snapshots }); S.lf = cur.lf; S.snapshots = cur.snapshots; if (own.size > 20) own.clear(); own.add(JSON.stringify(cur)) })
+const remember = (st) => { if (own.size > 20) own.clear(); own.add(JSON.stringify(st)) }
+// Widgets schreiben nur über patchWidget/addWidget/removeWidget; persist() übernimmt deren gespeicherten Stand (in die vorhandenen Objekte, damit offene Widgets aktuell bleiben).
+const persist = () => update((cur) => {
+  const stored = new Map(cur.workspaces.map((x) => [x.id, x.widgets])), local = new Map(S.workspaces.flatMap((x) => x.widgets || []).map((w) => [w?.id, w]))
+  Object.assign(cur, S, { lf: cur.lf, snapshots: cur.snapshots }); S.lf = cur.lf; S.snapshots = cur.snapshots
+  for (const x of cur.workspaces) if (stored.has(x.id)) x.widgets = (stored.get(x.id) || []).map((sw) => (sw && local.has(sw.id) ? sync(local.get(sw.id), sw) : sw))
+  remember(cur)
+})
 const ws = () => S.workspaces.find((w) => w.id === S.currentWs) || S.workspaces[0]
 const mk = (n) => n.url || 'f:' + n.id
 const mt = (k) => (S.meta[k] ||= {})
@@ -188,76 +196,43 @@ function dialMenu(e, g) {
 }
 
 /* ---------- Widgets ---------- */
+// Hülle: Kasten, Titel, Entfernen, Fehlerkarte, Schreibweg. Alles Typspezifische steht in widgets/<typ>.js (Liste: widgets/index.js).
 let ticks = []
 setInterval(() => ticks.forEach((f) => f()), 1000)
 function renderWidgets() {
   ticks = []
-  $('widgets').replaceChildren(...ws().widgets.map(widgetEl))
+  $('widgets').replaceChildren(...(ws().widgets || []).map(widgetEl))
 }
+// Abgleich mit dem gespeicherten Stand (auch gelöschte Felder), damit persist() ein Widget nie zurückdreht.
+const sync = (local, saved) => { for (const k of Object.keys(local)) if (!(k in saved)) delete local[k]; return Object.assign(local, saved) }
+const dropWidget = async (id) => { await removeWidget(id, remember); for (const x of S.workspaces) x.widgets = (x.widgets || []).filter((y) => y?.id !== id); renderWidgets() }
+const removeMenu = (w) => (e) => { e.preventDefault(); menu(e, [{ label: 'Widget entfernen', fn: () => dropWidget(w?.id) }]) }
+const errorCard = (w, e) => h('div', { class: 'widget widget-error', oncontextmenu: removeMenu(w) }, h('div', { class: 'wtitle' }, 'Widget-Fehler'), h('div', { class: 'muted' }, `${w?.type}: ${e?.message || e}`), h('button', { onclick: () => dropWidget(w?.id) }, 'Entfernen'))
 function widgetEl(w) {
-  const big = h('div', { class: 'wbig' }), sub = h('div', { class: 'muted' })
-  const title = { clock: w.tz || 'Lokale Zeit', countdown: w.label || 'Countdown', timer: w.pomo ? `Pomodoro ${w.minutes}/${w.brk || 5} min` : 'Timer ' + w.minutes + ' min', counter: w.label || 'Zähler', snippets: 'Textbausteine' }[w.type]
-  const box = h('div', { class: 'widget', oncontextmenu: (e) => { e.preventDefault(); menu(e, [{ label: 'Widget entfernen', fn: async () => { ws().widgets = ws().widgets.filter((x) => x.id !== w.id); await persist(); renderWidgets() } }]) } }, h('div', { class: 'wtitle' }, title), big, sub)
-  if (w.type === 'clock') {
-    ticks.push(() => {
-      try {
-        const d = new Date(), tz = w.tz || undefined
-        big.textContent = d.toLocaleTimeString('de-DE', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        sub.textContent = d.toLocaleDateString('de-DE', { timeZone: tz, weekday: 'short', day: '2-digit', month: 'short' })
-      } catch { big.textContent = 'Zeitzone?' }
+  const big = h('div', { class: 'wbig' }), sub = h('div', { class: 'muted' }), mine = []
+  try {
+    const def = WIDGETS[w?.type]
+    if (!def) throw new Error('Unbekannter Widget-Typ')
+    const box = h('div', { class: 'widget', oncontextmenu: removeMenu(w) }, h('div', { class: 'wtitle' }, def.title(w)), big, sub)
+    def.render(w, {
+      big, sub, box, h, toast, ask, icon: I, redraw: renderWidgets,
+      // erster Lauf sofort (wirft er, wird es eine Fehlerkarte); später ersetzt ein Fehler nur diesen Kasten
+      tick: (f) => { f(); const t = () => { try { f() } catch (e) { ticks = ticks.filter((x) => x !== t); box.replaceWith(errorCard(w, e)) } }; mine.push(t); ticks.push(t) },
+      patch: async (fn) => { const saved = await patchWidget(w.id, fn, remember); return saved && sync(w, saved) },
     })
-  } else if (w.type === 'countdown') {
-    ticks.push(() => {
-      const s = Math.max(0, Math.floor((new Date(w.to) - Date.now()) / 1000))
-      big.textContent = `${Math.floor(s / 86400)}d ${String(Math.floor(s / 3600) % 24).padStart(2, '0')}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
-      sub.textContent = new Date(w.to).toLocaleString('de-DE')
-    })
-  } else if (w.type === 'timer') {
-    // Zustand als Zeitstempel: überlebt geschlossene Tabs; der Wecker (Alarm) und die Benachrichtigung laufen im Hintergrund.
-    const show = () => {
-      const l = timerLeft(w, Date.now())
-      big.textContent = `${String(Math.floor(l / 60)).padStart(2, '0')}:${String(l % 60).padStart(2, '0')}`
-      sub.textContent = (w.pomo ? (w.phase === 'break' ? 'Pause' : 'Arbeiten') : '') + (w.until ? '' : ' · angehalten')
-    }
-    show(); ticks.push(show)
-    const set = async (fn) => {
-      fn(); await B.alarms.clear('timer|' + w.id)
-      if (w.until) B.alarms.create('timer|' + w.id, { when: w.until })
-      await persist(); show()
-    }
-    box.append(
-      h('button', { onclick: () => set(() => { const l = timerLeft(w, Date.now()); if (w.until) { w.left = l; delete w.until } else { w.until = Date.now() + (l || w.minutes * 60) * 1000; delete w.left } }) }, 'Start/Pause'),
-      h('button', { onclick: () => set(() => { delete w.until; delete w.left; w.phase = 'work' }) }, 'Reset'))
-  } else if (w.type === 'counter') {
-    const upd = () => { big.textContent = w.n }
-    upd()
-    const step = (d) => async () => { w.n += d; upd(); await persist() }
-    box.append(h('button', { onclick: step(-1) }, '−'), h('button', { onclick: step(1) }, '+'))
-  } else if (w.type === 'snippets') {
-    box.append(...w.items.map((t) => h('button', { onclick: () => { navigator.clipboard.writeText(t); toast('Kopiert') } }, t.slice(0, 28))),
-      h('button', { title: 'Textbausteine bearbeiten', 'aria-label': 'Textbausteine bearbeiten', onclick: async () => { const v = await ask('Textbausteine', [{ name: 'items', label: 'Einer pro Zeile', type: 'textarea', rows: 6, value: w.items.join('\n') }]); if (v) { w.items = v.items.split('\n').map((x) => x.trim()).filter(Boolean); await persist(); renderWidgets() } } }, I('edit')))
-  }
-  return box
+    return box
+  } catch (e) { ticks = ticks.filter((x) => !mine.includes(x)); return errorCard(w, e) }
 }
 async function addWidget() {
-  const t = await ask('Widget', [{ name: 'type', label: 'Typ', type: 'select', options: [['clock', 'Datum & Uhrzeit (Zeitzone)'], ['countdown', 'Countdown'], ['timer', 'Timer'], ['counter', 'Zähler'], ['snippets', 'Textbausteine']] }])
+  const t = await ask('Widget', [{ name: 'type', label: 'Typ', type: 'select', options: Object.values(WIDGETS).map((d) => [d.type, d.label]) }])
   if (!t) return
-  const F = {
-    clock: [{ name: 'tz', label: 'Zeitzone (leer = lokal)', placeholder: 'Asia/Tokyo' }],
-    countdown: [{ name: 'label', label: 'Name' }, { name: 'to', label: 'Ziel', type: 'datetime-local' }],
-    timer: [{ name: 'minutes', label: 'Minuten', type: 'number', value: S.settings.pomo.work, min: 1 }, { name: 'pomo', label: 'Pomodoro (Arbeit und Pause im Wechsel)', type: 'checkbox' }, { name: 'brk', label: 'Pause (Minuten)', type: 'number', value: S.settings.pomo.brk, min: 1 }],
-    counter: [{ name: 'label', label: 'Name' }],
-    snippets: [{ name: 'items', label: 'Einer pro Zeile', type: 'textarea', rows: 5 }],
-  }[t.type]
-  const v = await ask('Widget: ' + t.type, F)
+  const def = WIDGETS[t.type], d = def.defaults(S)
+  const v = await ask('Widget: ' + t.type, def.fields(d))
   if (!v) return
-  const w = { id: crypto.randomUUID(), type: t.type }
-  if (t.type === 'clock') { try { if (v.tz) new Intl.DateTimeFormat('de', { timeZone: v.tz }) } catch { return toast('Unbekannte Zeitzone: ' + v.tz) } w.tz = v.tz.trim() }
-  if (t.type === 'countdown') { if (!v.to) return toast('Ziel fehlt'); w.label = v.label; w.to = v.to }
-  if (t.type === 'timer') Object.assign(w, { minutes: Math.max(1, v.minutes || 25), pomo: v.pomo, brk: Math.max(1, v.brk || 5), phase: 'work' })
-  if (t.type === 'counter') { w.label = v.label; w.n = 0 }
-  if (t.type === 'snippets') w.items = v.items.split('\n').map((x) => x.trim()).filter(Boolean)
-  ws().widgets.push(w); await persist(); renderWidgets()
+  const made = def.make ? def.make(v, d) : { ...d, ...v } // make darf einen Fehlertext liefern
+  if (typeof made === 'string') return toast(made)
+  const w = { id: crypto.randomUUID(), type: t.type, ...made }
+  await storeAddWidget(ws().id, w, remember); (ws().widgets ||= []).push(w); renderWidgets()
 }
 
 /* ---------- Board ---------- */
