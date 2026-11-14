@@ -1,6 +1,12 @@
 # Änderungen
 
-## Unveröffentlicht
+## 0.6.0
+- Eigenes Programmsymbol (16/32/48/128 px) und einheitlicher Symbolsatz statt gemischter Unicode-Zeichen; alle Symbol-Knöpfe haben einen Namen für Screenreader.
+- Ruhiger Kopf: sechs Knöpfe plus „Mehr“-Menü (Workspace, Widget, Sitzungen).
+- Alle Menüs per Tastatur (Pfeile, Pos1/Ende, Enter, Esc), mit Symbol und Kürzel; Lesezeichen-Menü mit „In Live-Ordner legen“, „Link kopieren“, „Als Markdown kopieren“, „In neuem Fenster öffnen“.
+- Browser-Kontextmenü gebündelt unter „pika-own“ (inkl. „In Live-Ordner“); Tastenkürzel im Manifest (`commands`), Übersicht mit `?`.
+- Einstellungen mit Abschnitten und Suche (`/`); neue Optionen: Leiste im Neuen Tab, Schnellwahl-Anzahl, Links im neuen Tab, Löschen bestätigen (mit Rückgängig), Hinweis-Abstand für die Sicherungsdatei, Pomodoro-Standardlängen; Emoji-Raster für Symbole.
+- Die alten Symbol-Dateien `icon48.png`/`icon128.png` sind durch `icons/icon-*.png` ersetzt.
 - Papierkorb (7 Tage, höchstens 20 Einträge) mit Wiederherstellen; Löschen geht immer zuerst dorthin.
 - Dubletten-Finder mit „Je eines behalten“ (Tags und Favoriten bleiben, sie hängen an der URL).
 - Optionale Spalten „Zuletzt hinzugefügt“ und „Meistbesucht“, Ansicht „Kompakte Zeilen“, Schriftart Sans/Mono/Serif.
