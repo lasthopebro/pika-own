@@ -2,7 +2,7 @@
 // den Pomodoro-Wechsel im Hintergrund und das Entfernen. Node: node tools/e2e/widgets.mjs <Erweiterungsordner>
 import { flow } from './harness.mjs'
 
-flow('widgets', async ({ ctx, ok, newtab, until }) => {
+flow('widgets', async ({ ctx, ok, newtab, until, poll }) => {
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write'])
   const page = await newtab()
   const W = (t) => page.locator('.widget', { hasText: t })
@@ -103,7 +103,8 @@ flow('widgets', async ({ ctx, ok, newtab, until }) => {
   // Notiz: tippen, innerhalb einer Sekunde gespeichert, nach dem Neuladen noch da (v0.8)
   await add('notes')
   await W('Notiz').locator('textarea').fill('Milch kaufen')
-  ok(await until(page, async () => (await (await import('./lib/store.js')).load()).workspaces[0].widgets.find((w) => w.type === 'notes')?.text === 'Milch kaufen', undefined, 2500), 'Notiz: Text ist spätestens nach 2,5 s gespeichert (Entprellung 0,5 s)')
+  // poll statt until: waitForFunction wartet nicht auf asynchrone Bedingungen
+  ok(await poll(async () => (await stored()).find((w) => w.type === 'notes')?.text === 'Milch kaufen', 2500), 'Notiz: Text ist spätestens nach 2,5 s gespeichert (Entprellung 0,5 s)')
   await page.reload(); await page.waitForSelector('.widget')
   ok(await until(page, () => document.querySelector('.widget textarea')?.value === 'Milch kaufen'), 'Notiz: Text steht nach dem Neuladen im Widget')
 
@@ -134,7 +135,7 @@ flow('widgets', async ({ ctx, ok, newtab, until }) => {
   await T.locator('li', { hasText: 'Wird gelöscht' }).waitFor()
   await T.locator('li', { hasText: 'Wird gelöscht' }).locator('button[aria-label^="Löschen"]').click()
   const notes = () => page.evaluate(async () => Object.keys(await chrome.notifications.getAll()).filter((k) => k.startsWith('todo|')).sort())
-  ok(await until(page, async () => Object.keys(await chrome.notifications.getAll()).some((k) => k.endsWith('|bald'))), 'Todo-Alarm: Benachrichtigung für den fälligen Punkt erscheint (ohne Klick, aus dem Hintergrund)')
+  ok(await poll(async () => (await notes()).some((k) => k.endsWith('|bald')), 15000), 'Todo-Alarm: Benachrichtigung für den fälligen Punkt erscheint (ohne Klick, aus dem Hintergrund)')
   await new Promise((r) => setTimeout(r, 3500)) // genug Zeit für eine zweite Meldung oder für den gelöschten Punkt
   const got = await notes()
   // Erwartet: „Bald fällig“ genau einmal und der überfällige Punkt „Alt“ genau einmal (nachgeholt), sonst nichts.

@@ -30,6 +30,13 @@ Eigener Code, clean-room: Vorbild ist nur Aussehen und Verhalten, kein fremder C
 - **Tastenkürzel:** `?` zeigt alle. Im Browser änderbar (Alt+Umschalt+S Seite speichern, Alt+Umschalt+B Leiste ein-/ausklappen, Alt+Umschalt+P/L Seitenleiste): Chrome/Brave/Edge `chrome://extensions/shortcuts`, Firefox `about:addons` → Zahnrad → Tastenkürzel verwalten.
 - **Einstellungen:** Abschnitte (Aussehen, Leiste, Schnellwahl, Board, Erinnerungen & Timer, Sicherung, KI, Datenschutz) mit Suche (Taste `/`). Neu: Leiste im Neuen Tab an/aus, Zahl der Schnellwahl-Einträge, Links im neuen Tab, Löschen bestätigen (aus = mit Rückgängig, Ordner immer mit Nachfrage), Sicherungs-Hinweis nach 7/14/30 Tagen oder nie, Pomodoro-Standardlängen, Emoji-Raster für Live-Ordner und Lesezeichen.
 
+## Widgets (v0.8)
+Mehr → Widget hinzufügen. Alle Widgets arbeiten lokal, ohne Konto und ohne zusätzliche Berechtigung.
+- **Uhr, Countdown, Timer/Pomodoro, Zähler, Textbausteine:** wie bisher.
+- **Notiz:** mehrzeiliges Textfeld, gespeichert 0,5 s nach der letzten Eingabe und beim Verlassen des Felds.
+- **Todo:** Text eintippen, Enter; optional Fälligkeit (Datum und Uhrzeit) davor wählen. Überfällige Punkte stehen oben und sind rot, erledigte unten. Zur Fälligkeit erscheint genau eine Systembenachrichtigung, auch bei geschlossenem Neuen Tab (nach einem Browserstart werden verpasste nachgeholt).
+- **Fotorahmen:** bis zu 6 Bild-Adressen (nur `https:`), eine pro Zeile, Wechselzeit (Standard 30 s), Einpassen oder Füllen; Stift = bearbeiten. Gespeichert werden nur die Adressen. Der Server, der ein Bild ausliefert, sieht deine IP-Adresse und den Zeitpunkt.
+
 ## Eigenes Widget bauen (v0.7)
 Ein Widget ist eine Datei `widgets/<typ>.js` mit einem Standard-Export und ein Eintrag in `widgets/index.js`; `newtab.js` bleibt unberührt.
 ```js
@@ -57,7 +64,7 @@ Lizenz: MIT (`LICENSE`), Änderungen: `CHANGELOG.md`.
 - Tags, Kommentare, Erinnerungen, Favoriten, Farbmarkierung, eigene Emoji-Icons, Spaltennamen/-farben
 - Workspaces, angepinnte Links, Tab-Sitzungen, tägliche Sicherung (7 Stück) + Export/Import, Sammelumbenennen (Regex, Live-Vorschau)
 - Akzentfarbe, Pitch Black, 8 Hintergründe/Foto/Farbe/Verlauf, Körnung, Parallax
-- Widgets: Uhr mit Zeitzone, Countdown, Timer, Zähler, Textbausteine
+- Widgets: Uhr mit Zeitzone, Countdown, Timer, Zähler, Textbausteine, Notiz, Todo mit Fälligkeit, Fotorahmen
 - Seitenleiste mit eigenen Ansichten (Ordner, Tag, Verlauf, Tabs, Suche, Sitzungen, eigene Links)
 - **Weitermachen** (v0.2): Karten auf dem neuen Tab, die den Verlauf nach Zeitlücken (30 min) zu Sitzungen gruppieren; „Alle öffnen“ in einem Fenster, funktioniert ohne KI
 - **KI-Dialog** (✨, v0.2): Ollama-Status (grün/rot), Modelle mit Größe wählen, empfohlene Modelle herunterladen (Fortschrittsbalken, Abbrechen, Löschen); OpenRouter mit Schlüssel und nur kostenlosen Modellen, bei Tageslimit Fallback auf das Ollama-Modell
