@@ -93,3 +93,11 @@ svg.pi{flex:none;vertical-align:-3px}button.ico svg.pi,.search svg.pi{display:bl
 #gal[data-mode=list] .ggrid .gurl{display:block;flex:0 1 40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #gal[data-mode=list][data-d=s] .ggrid .item{padding:2px 8px;font-size:12px}#gal[data-mode=list][data-d=l] .ggrid .item{padding:11px 12px;font-size:16px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Tour: Karte am Ziel, Ring dimmt den Rest */
+dialog.tour{position:fixed;margin:0;width:min(360px,92vw);min-width:0;overflow:visible}dialog.tour::backdrop{background:transparent}
+.tour-ring{position:fixed;pointer-events:none;border-radius:10px;outline:2px solid var(--accent);box-shadow:0 0 0 9999px #0007}
+dialog.tour h3{margin:2px 0 6px}dialog.tour p{margin:4px 0}
+
+/* Berechtigungsseite */
+.permbox{margin:6px 0}.permbox summary{cursor:pointer;padding:4px 0}.prow{align-items:flex-start;flex-wrap:wrap}.prow code{font-size:12px}.list .prow .pstat{flex:0 0 auto;white-space:nowrap;font-size:12px}

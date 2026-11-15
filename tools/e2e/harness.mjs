@@ -21,7 +21,7 @@ function mockServer(state) {
 
 // Führt einen Ablauf aus: fn(env) mit env = { ctx, page, id, errs, ok, msg, relaunch, mock, EXT }.
 // Fehler im Ablauf werden als FAIL gezählt; Exit-Code 1 bei jedem FAIL oder JS-Fehler.
-export async function flow(name, fn, { mockServer: withMock = true } = {}) {
+export async function flow(name, fn, { mockServer: withMock = true, tour = false } = {}) {
   const EXT = process.argv[2]
   if (!EXT) { console.error(`Aufruf: node ${process.argv[1]} <Erweiterungsordner>`); process.exit(2) }
   let pass = 0, fail = 0
@@ -38,6 +38,9 @@ export async function flow(name, fn, { mockServer: withMock = true } = {}) {
     const ctx = await chromium.launchPersistentContext(ud, opts)
     let [sw] = ctx.serviceWorkers(); if (!sw) sw = await ctx.waitForEvent('serviceworker')
     env.ctx = ctx; env.id = sw.url().split('/')[2]
+    // Die Tour erscheint im frischen Profil beim ersten Neuen Tab und würde jeden Ablauf stören: außer im Tour-Ablauf vorab als gesehen markieren.
+    // (import() ist im Service Worker verboten: unter derselben Sperre wie update() von Hand schreiben)
+    if (!tour) await sw.evaluate(() => navigator.locks.request('pika-state', async () => { const { pika } = await chrome.storage.local.get('pika'); await chrome.storage.local.set({ pika: { schema: 2, ...pika, settings: { ...pika?.settings, tourDone: true } } }) }))
     env.msg = (p, m) => p.evaluate((m) => chrome.runtime.sendMessage(m), m)
     return ctx
   }

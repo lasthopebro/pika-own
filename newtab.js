@@ -1,6 +1,6 @@
 import { B } from './lib/api.js'
 import { load, update, patchWidget, addWidget as storeAddWidget, removeWidget } from './lib/store.js'
-import { applyTopics, undo as undoLf } from './lib/folders.js'
+import { applyTopics, undo as undoLf, emptyFolders } from './lib/folders.js'
 import { h, toast, menu, dialog, ask, tile } from './lib/ui.js'
 import { domainOf, groupHistory, renameName, parseAiTopics, score, parseBars, barsToText } from './lib/logic.js'
 import { loadItems } from './lib/dials.js'
@@ -12,10 +12,13 @@ import { openTabs, saveSession, openSession } from './lib/sessions.js'
 import * as ai from './lib/ai.js'
 import * as ollama from './lib/ollama.js'
 import { resumeCards } from './lib/resume.js'
-import { trashAdd, restoreParent, findDupes, discovery, mdLink } from './lib/board.js'
-import { urlsFromText, backupNagDue, NAG_MS, absorb } from './lib/quick.js'
+import { trashAdd, trashDrop, stillEmpty, restoreParent, findDupes, discovery, mdLink, toTree, TRASH_MAX } from './lib/board.js'
+import { hasSiteAccess } from './lib/perms-info.js'
+import { urlsFromText, backupNagDue, NAG_MS, absorb, canon } from './lib/quick.js'
 import { WIDGETS } from './widgets/index.js'
 import { cleanPath, crumbs, children, filterChildren, up, pathTo, folderList } from './lib/gallery.js'
+import { runTour } from './lib/tour-ui.js'
+import { permsNode } from './lib/perms-ui.js'
 
 let S, T, histItems = [], filterTag = '', selMode = false, focus = null, drag = null, importing = false
 const own = new Set() // selbst geschriebene Stände (JSON), damit deren Änderungsereignis nicht neu lädt
@@ -23,7 +26,7 @@ const byId = new Map()
 const sel = new Set()
 const $ = (id) => document.getElementById(id)
 // lf/snapshots schreiben auch Hintergrund und Leiste: nie mit altem Stand überschreiben. own = zuletzt selbst geschrieben.
-const remember = (st) => { if (own.size > 20) own.clear(); own.add(JSON.stringify(st)) }
+const remember = (st) => { if (own.size > 20) own.clear(); own.add(canon(st)) }
 // Widgets schreiben nur über patchWidget/addWidget/removeWidget; persist() übernimmt deren gespeicherten Stand (in die vorhandenen Objekte, damit offene Widgets aktuell bleiben).
 const persist = () => update((cur) => {
   const stored = new Map(cur.workspaces.map((x) => [x.id, x.widgets])), local = new Map(S.workspaces.flatMap((x) => x.widgets || []).map((w) => [w?.id, w]))
@@ -79,6 +82,7 @@ function columnsFor(w) {
     cols.push({ id: 'virtual-recent', title: 'Zuletzt hinzugefügt', children: discovery('recent', u), virtual: true },
       { id: 'virtual-top', title: 'Meistbesucht', children: discovery('top', u, histItems), virtual: true })
   }
+  if (S.settings.emptyCol) cols.push({ id: 'virtual-empty', title: 'Leere Ordner', children: emptyFolders(T[0]), virtual: true })
   return cols
 }
 function passes(n) {
@@ -270,12 +274,12 @@ function folderEl(n) {
   return d
 }
 function colEl(f) {
-  const cm = ws().colNames[f.id] || {}
+  const cm = ws().colNames[f.id] || {}, emp = f.id === 'virtual-empty' // Zusatzspalte „Leere Ordner“: zählt Ordner, nimmt nichts per Ziehen an
   return h('section', {
     class: 'col', style: { '--c': cm.color || 'var(--bd)' }, ondragover: (e) => e.preventDefault(),
-    ondrop: (e) => { e.preventDefault(); dropOn(f.virtual ? barOf(T).id : f.id, undefined, e) },
-  }, h('header', { class: 'colhead' }, h('span', { class: 'colname' }, cm.name || f.title || '(ohne Namen)'), h('span', { class: 'muted' }, String(countUrls(f))), h('button', { class: 'ico', title: 'Spaltenmenü', 'aria-label': 'Spaltenmenü', onclick: (e) => colMenu(e, f) }, I('more'))),
-  h('div', { class: 'colbody' }, (f.children || []).filter(passes).map((n) => (n.url ? itemEl(n) : folderEl(n)))))
+    ondrop: (e) => { e.preventDefault(); if (emp) drag = null; else dropOn(f.virtual ? barOf(T).id : f.id, undefined, e) },
+  }, h('header', { class: 'colhead' }, h('span', { class: 'colname' }, cm.name || f.title || '(ohne Namen)'), h('span', { class: 'muted' }, String(emp ? f.children.length : countUrls(f))), emp && f.children.length && !filterTag ? h('button', { onclick: () => cleanEmpty(f.children) }, 'Alle aufräumen') : null, h('button', { class: 'ico', title: 'Spaltenmenü', 'aria-label': 'Spaltenmenü', onclick: (e) => colMenu(e, f) }, I('more'))),
+  h('div', { class: 'colbody' }, (f.children || []).filter(passes).map((n) => (n.url ? itemEl(n) : folderEl(n))), emp && !f.children.length ? h('p', { class: 'muted' }, 'Keine leeren Ordner.') : null))
 }
 function renderBoard() {
   const b = $('board')
@@ -444,7 +448,30 @@ async function del(nodes) {
 async function trashNodes(nodes) {
   for (const n of nodes) S.trash = trashAdd(S.trash, n, Date.now())
   await persist()
-  for (const n of nodes) { try { n.url ? await B.bookmarks.remove(n.id) : await B.bookmarks.removeTree(n.id) } catch (e) { toast(e.message) } }
+  const failed = []
+  for (const n of nodes) { try { n.url ? await B.bookmarks.remove(n.id) : await B.bookmarks.removeTree(n.id) } catch (e) { failed.push(n); toast(e.message) } }
+  if (failed.length) { S.trash = trashDrop(S.trash, failed); await persist() } // nicht löschbar (z. B. verwaltet): kein Papierkorb-Eintrag
+  return failed
+}
+// „Alle aufräumen“ der Spalte Leere Ordner: Anzahl nennen, über den Papierkorb löschen (höchstens TRASH_MAX auf einmal), Rückgängig legt sie an die alte Stelle zurück.
+async function cleanEmpty(folders) {
+  const batch = folders.slice(0, TRASH_MAX), rest = folders.length - batch.length
+  if (!confirm(`${batch.length} leere Ordner in den Papierkorb verschieben?${rest ? ` (${rest} weitere beim nächsten Mal)` : ''}${S.trash.length + batch.length > TRASH_MAX ? `\nDer Papierkorb fasst ${TRASH_MAX} Einträge: ältere fallen heraus.` : ''}`)) return
+  // Die Liste ist ein Schnappschuss: inzwischen gefüllte Ordner (anderer Tab) bleiben unberührt.
+  const { empty, skipped } = await stillEmpty(B.bookmarks, batch)
+  const snap = empty.map((n) => ({ parentId: n.parentId, index: n.index, tree: toTree(n) }))
+  const failed = await trashNodes(empty)
+  snap.splice(0, snap.length, ...snap.filter((x) => !failed.some((n) => n.parentId === x.parentId && n.index === x.index && n.title === x.tree.title)))
+  const note = (skipped ? `, ${skipped} nicht mehr leer ausgelassen` : '') + (failed.length ? `, ${failed.length} nicht löschbar` : '')
+  if (!snap.length) return toast(`Nichts verschoben${note}`)
+  toast(`${snap.length} leere Ordner im Papierkorb${note}`, { label: 'Rückgängig', fn: async () => {
+    for (const x of snap.sort((p, q) => p.index - q.index)) {
+      const p = byId.has(x.parentId) ? x.parentId : barOf(T).id
+      await restoreTree(x.tree, p, p === x.parentId ? x.index : undefined).catch(() => restoreTree(x.tree, p)).catch((e) => toast(e.message))
+    }
+    S.trash = S.trash.filter((e) => !snap.some((x) => !e.tree.url && e.parentId === x.parentId && e.index === x.index && e.tree.title === x.tree.title))
+    await persist(); toast('Wiederhergestellt')
+  } })
 }
 async function restoreTree(t, parentId, index) {
   const n = await B.bookmarks.create(t.url ? { parentId, index, title: t.title, url: t.url } : { parentId, index, title: t.title })
@@ -644,7 +671,7 @@ function renderSelBar() {
 function palette() {
   const ACTIONS = [
     ['Auswahlmodus', toggleSel], ['Board / Galerie wechseln', toggleView], ['KI: Tabs nach Themen', aiDlg], ['Tab-Sitzungen', sessionsDlg],
-    ['Papierkorb', trashDlg], ['Dubletten finden', dupesDlg],
+    ['Papierkorb', trashDlg], ['Dubletten finden', dupesDlg], ['Tour (Erste Schritte)', tourStart],
     ['Einstellungen', settingsDlg], ['Neuer Workspace', newWs], ['Widget hinzufügen', addWidget],
     ['Sicherung jetzt erstellen', async () => { await saveBackup(); toast('Gesichert') }], ['Tag-Filter aufheben', () => { filterTag = ''; render() }],
   ]
@@ -687,13 +714,24 @@ addEventListener('keydown', (e) => {
   else if (k === 'escape') { if (selMode) toggleSel(); else if (focus) { focus = null; renderBoard() } else if (filterTag) { filterTag = ''; renderTags(); renderBoard() } }
 })
 
+/* ---------- Tour ---------- */
+// Beim ersten Start automatisch (settings.tourDone), sonst über die Palette. Ende, Überspringen und Esc merken sich "gesehen" nur in diesem einen Feld.
+function tourStart() {
+  if (document.querySelector('dialog[open]')) return
+  if (gal) galClose()
+  runTour(() => {
+    S.settings.tourDone = true
+    update((cur) => { cur.settings.tourDone = true; remember(cur) })
+  })
+}
+
 /* ---------- Tastenkürzel ---------- */
 async function keysDlg() {
   const cmds = ((await B.commands?.getAll?.().catch(() => [])) || []).filter((c) => c.description)
   const table = (rows) => h('table', { class: 'keys' }, rows.map(([k, d]) => h('tr', {}, h('td', {}, h('kbd', {}, k)), h('td', {}, d))))
   dialog('Tastenkürzel', h('div', {},
     h('h4', {}, 'Im Neuen Tab'),
-    table([['F', 'Suche'], ['S', 'Auswahlmodus'], ['V', 'Galerie öffnen / schließen'], ['N', 'Neuer Workspace'], ['?', 'Diese Übersicht'], ['Esc', 'Auswahl, Ausschnitt oder Tag-Filter zurücksetzen; in der Galerie: Suchfeld leeren, eine Ebene hoch, zurück zum Board'], ['/', 'Suchfeld im Einstellungsdialog'], ['Pfeile, Pos1, Ende, Enter, Esc', 'in jedem Menü']]),
+    table([['F', 'Suche'], ['S', 'Auswahlmodus'], ['V', 'Galerie öffnen / schließen'], ['N', 'Neuer Workspace'], ['?', 'Diese Übersicht'], ['Esc', 'Auswahl, Ausschnitt oder Tag-Filter zurücksetzen; in der Galerie: Suchfeld leeren, eine Ebene hoch, zurück zum Board'], ['/', 'Suchfeld im Einstellungsdialog'], ['F, dann > Tour', 'Erste Schritte noch einmal zeigen'], ['Pfeile, Pos1, Ende, Enter, Esc', 'in jedem Menü']]),
     h('h4', {}, 'Im Browser'),
     table(cmds.map((c) => [c.shortcut || 'nicht belegt', c.description])),
     h('p', { class: 'muted' }, 'Die Browser-Kürzel änderst du in Chrome, Brave und Edge unter chrome://extensions/shortcuts, in Firefox unter about:addons (Zahnrad, „Tastenkürzel verwalten“).')))
@@ -820,6 +858,14 @@ function settingsDlg() {
     e.target.textContent = pb.on ? 'Leiste auf Webseiten ausschalten' : 'Leiste auf Webseiten einschalten …'
     toast(pb.on ? 'Leiste auf Webseiten an (geöffnete Seiten neu laden)' : 'Leiste auf Webseiten aus')
   })()
+  const pbRow = act('Leiste auf Webseiten', pb.on ? 'Leiste auf Webseiten ausschalten' : 'Leiste auf Webseiten einschalten …', pbToggle)
+  // Webseiten-Berechtigung widerrufen: Leiste aus (Skript wird in der Zentrale abgemeldet), der Knopf oben bietet das Einschalten wieder an.
+  const permsRow = { label: 'Berechtigungen Zugriff Widerruf erteilt Datenschutz', node: permsNode({ manifest: B.runtime.getManifest(), perms: B.permissions, onRevoke: async (e) => {
+    if (e.name !== '<all_urls>' || hasSiteAccess(B.runtime.getManifest(), await B.permissions.getAll())) return // einzelne Seiten noch erteilt: Leiste bleibt
+    pb.on = false; await persist(); await B.runtime.sendMessage({ type: 'pagebar' })
+    pbRow.node.querySelector('button').textContent = 'Leiste auf Webseiten einschalten …'
+    toast('Leiste auf Webseiten aus (geöffnete Seiten neu laden)')
+  } }) }
   const folderStat = h('p', { class: 'muted' })
   const paint = async () => {
     const f = S.settings.backup.folder
@@ -854,7 +900,7 @@ function settingsDlg() {
     { ...act('Hintergrund', 'Foto als Hintergrund …', () => photo.click()), keywords: 'bild' }, { label: '', node: photo },
     { section: 'Leiste' },
     { name: 'newtabBar', label: 'Leiste im Neuen Tab anzeigen', type: 'checkbox', value: s.newtabBar },
-    act('Leiste auf Webseiten', pb.on ? 'Leiste auf Webseiten ausschalten' : 'Leiste auf Webseiten einschalten …', pbToggle),
+    pbRow,
     { name: 'pbExclude', label: 'Leiste auf Webseiten ausblenden bei', value: pb.exclude, placeholder: 'bank.de, mail.com' },
     { section: 'Schnellwahl' },
     { name: 'quick', label: 'Schnellwahl-Einträge in der Leiste (0 bis 20)', type: 'number', min: 0, max: 20, value: pb.quick },
@@ -865,6 +911,7 @@ function settingsDlg() {
     { name: 'galleryMode', label: 'Galerie (Taste V): Darstellung', type: 'select', value: s.galleryMode, options: [['grid', 'Raster'], ['list', 'Liste']] },
     { name: 'galleryDensity', label: 'Galerie (Taste V): Dichte', type: 'select', value: s.galleryDensity, options: [['s', 'Klein'], ['m', 'Mittel'], ['l', 'Groß']] },
     { name: 'discover', label: 'Spalten „Zuletzt hinzugefügt“ und „Meistbesucht“', type: 'checkbox', value: s.discover },
+    { name: 'emptyCol', label: 'Spalte „Leere Ordner“ (mit „Alle aufräumen“)', type: 'checkbox', value: s.emptyCol },
     { name: 'openInNewTab', label: 'Links im Board im neuen Tab öffnen', type: 'checkbox', value: s.openInNewTab },
     { name: 'confirmDelete', label: 'Löschen einzelner Links bestätigen (aus: mit Rückgängig)', type: 'checkbox', value: s.confirmDelete },
     act('Seed Import', 'Seed importieren …', seedDlg),
@@ -885,9 +932,10 @@ function settingsDlg() {
     act('KI Ollama OpenRouter Modell Anbieter', 'KI-Einstellungen …', aiDlg),
     { section: 'Datenschutz' },
     { name: 'favicons', label: 'Seiten-Icons laden (Netzwerk)', type: 'checkbox', value: s.favicons },
+    permsRow,
   ], { ok: 'Speichern', search: true }).then(async (v) => {
     if (!v) return
-    Object.assign(s, { theme: v.theme, accent: v.accent, pitch: v.pitch, view: v.view, galleryMode: v.galleryMode, galleryDensity: v.galleryDensity, font: v.font, discover: v.discover, favicons: v.favicons, newtabBar: v.newtabBar, openInNewTab: v.openInNewTab, confirmDelete: v.confirmDelete, hidden: v.hidden.split(',').map((x) => x.trim()).filter(Boolean) })
+    Object.assign(s, { theme: v.theme, accent: v.accent, pitch: v.pitch, view: v.view, galleryMode: v.galleryMode, galleryDensity: v.galleryDensity, font: v.font, discover: v.discover, emptyCol: v.emptyCol, favicons: v.favicons, newtabBar: v.newtabBar, openInNewTab: v.openInNewTab, confirmDelete: v.confirmDelete, hidden: v.hidden.split(',').map((x) => x.trim()).filter(Boolean) })
     pb.exclude = v.pbExclude.trim()
     pb.quick = Number.isFinite(v.quick) ? Math.min(20, Math.max(0, Math.round(v.quick))) : 8
     s.pomo = { work: Math.max(1, Math.round(v.pomoWork) || 25), brk: Math.max(1, Math.round(v.pomoBrk) || 5) }
@@ -1020,7 +1068,7 @@ const typing = () => [...document.querySelectorAll('#widgets [data-wid]')].some(
 })
 B.storage.onChanged.addListener(async (ch, area) => {
   const nv = ch.pika?.newValue
-  if (area !== 'local' || !nv || !S || own.delete(JSON.stringify(nv))) return
+  if (area !== 'local' || !nv || !S || own.delete(canon(nv))) return
   if (document.querySelector('dialog[open]') || drag || typing()) return absorb(S, nv, Date.now())
   S = await load(); render()
 })
@@ -1029,6 +1077,7 @@ B.storage.onChanged.addListener(async (ch, area) => {
   T = await B.bookmarks.getTree(); index()
   await applyLook()
   render()
+  if (!S.settings.tourDone && !location.hash) tourStart() // gleich nach dem ersten Zeichnen, damit niemand schon tippt
   histItems = await loadItems()
   renderBars(); renderResume(); if (S.settings.discover) renderBoard()
   syncNewtabBar()

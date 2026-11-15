@@ -29,3 +29,16 @@ test('applyTopics + undo: Snapshot stellt den Stand davor wieder her', () => {
   assert.equal(undo(S), true); assert.deepEqual(S.lf.map((f) => f.name), ['Alt']); assert.equal(S.lf[0].items.length, 0)
   assert.equal(undo(S), false)
 })
+test('emptyFolders: leere Ordner, verschachtelt leer zählt einmal, Wurzeln und Ordner mit Lesezeichen nie', async () => {
+  const { emptyFolders } = await import('../lib/folders.js')
+  const f = (id, children = []) => ({ id, title: id, children })
+  const l = (id) => ({ id, title: id, url: 'https://x.org/' + id })
+  const root = f('0', [
+    f('bar', [f('leer1'), f('aussen', [f('innen')]), f('einer', [l('a')]), f('gemischt', [f('leer2'), l('b')]), f('tief', [f('t1', [f('t2')]), f('t3', [l('c')])])]),
+    f('other', []), // leere Wurzel bleibt
+    f('mobile', [f('leer3')]),
+  ])
+  assert.deepEqual(emptyFolders(root).map((n) => n.id), ['leer1', 'aussen', 'leer2', 't1', 'leer3'])
+  assert.deepEqual(emptyFolders(f('0', [f('bar', [f('e', [l('a')])])])), [])
+  assert.deepEqual(emptyFolders({}), [])
+})

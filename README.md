@@ -46,6 +46,11 @@ Taste `V` oder Kopf-Knopf „Board / Galerie“ öffnet das Vollbild, `V` oder `
 - **Ablegen:** Kachel auf einen Ordner links oder auf eine Ordner-Kachel ziehen verschiebt das Lesezeichen; „Rückgängig“ in der Meldung stellt es zurück.
 - Die Raster-Ansicht der Spalten im Board (Einstellungen → Ansicht → Spalten-Raster) bleibt unverändert. Keine neue Berechtigung.
 
+## Erste Schritte, Berechtigungen, Leere Ordner (v0.11)
+- **Tour:** beim ersten Start fünf kurze Schritte, überspringbar mit `Esc` oder „Überspringen“ und danach nie wieder von selbst. Noch einmal: `F`, `> Tour`.
+- **Berechtigungen:** Einstellungen → Datenschutz → „Berechtigungen anzeigen“ listet, was die Erweiterung darf und warum, mit Status; optionale (Zugriff auf alle Webseiten für die Leiste) lassen sich widerrufen. Die Liste kommt aus dem Manifest, nichts ist doppelt gepflegt.
+- **Leere Ordner:** Einstellungen → Board → „Spalte Leere Ordner“ (standardmäßig aus) zeigt Ordner ohne Lesezeichen; „Alle aufräumen“ schiebt sie in den Papierkorb, „Rückgängig“ stellt sie wieder her. Keine neue Berechtigung.
+
 ## Eigenes Widget bauen (v0.7)
 Ein Widget ist eine Datei `widgets/<typ>.js` mit einem Standard-Export und ein Eintrag in `widgets/index.js`; `newtab.js` bleibt unberührt.
 ```js
@@ -90,4 +95,4 @@ Lizenz: MIT (`LICENSE`), Änderungen: `CHANGELOG.md`.
 Einstellungen → „Seed importieren“ legt die Ordner und fehlende Lesezeichen an, `seed-dials.json` füttert die Schnellwahl zusätzlich zum Verlauf.
 
 ## Tests
-`npm test` (Logik), `npm run lint` (web-ext). Browser-Test: `tools/e2e-chromium.mjs <Erweiterungsordner ohne Leerzeichen im Pfad>` (Playwright) startet die Abläufe `tools/e2e/{board,bar,ai,capture,widgets}.mjs` einzeln mit frischem Profil; einer allein: `node tools/e2e/widgets.mjs <Ordner>`. Umgebung: `PIKA_MOCK_PORT` (Port des Ollama-Ersatzes, Standard 11434), `PIKA_CHROMIUM` (eigene Chromium-Datei). Berechtigungen: `node tools/check-permissions.mjs`.
+`npm test` (Logik), `npm run lint` (web-ext). Browser-Test: `tools/e2e-chromium.mjs <Erweiterungsordner ohne Leerzeichen im Pfad>` (Playwright) startet die Abläufe `tools/e2e/{board,bar,ai,capture,widgets,backup,gallery,tour,perms}.mjs` einzeln mit frischem Profil; einer allein: `node tools/e2e/widgets.mjs <Ordner>`. Umgebung: `PIKA_MOCK_PORT` (Port des Ollama-Ersatzes, Standard 11434), `PIKA_CHROMIUM` (eigene Chromium-Datei). Berechtigungen: `node tools/check-permissions.mjs`.

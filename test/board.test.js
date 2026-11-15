@@ -36,7 +36,21 @@ test('discovery: zuletzt und meistbesucht', () => {
 })
 
 
-import { mdLink } from '../lib/board.js'
+import { mdLink, stillEmpty, trashDrop } from '../lib/board.js'
+test('stillEmpty: nur wirklich leere Ordner, inzwischen gefüllte oder fehlende werden ausgelassen', async () => {
+  const kids = { a: [], b: [{ id: 'x', url: 'https://a.de' }], c: [], e: [{ id: 'e1' }], e1: [], g: [{ id: 'g1' }], g1: [{ id: 'u', url: 'https://b.de' }] }
+  const bookmarks = { getChildren: async (id) => { if (!(id in kids)) throw new Error('weg'); return kids[id] } }
+  const r = await stillEmpty(bookmarks, [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }, { id: 'e' }, { id: 'g' }])
+  assert.deepEqual(r.empty.map((f) => f.id), ['a', 'c', 'e']) // e: nur leerer Unterordner; g: Link tief darunter
+  assert.equal(r.skipped, 3)
+})
+test('trashDrop: entfernt nur die Einträge der nicht löschbaren Knoten', () => {
+  const n = (title, index) => ({ title, index, parentId: 'p', children: [] })
+  let t = []
+  for (const x of [n('A', 0), n('B', 1), n('C', 2)]) t = trashAdd(t, x, 1)
+  assert.deepEqual(trashDrop(t, [n('B', 1)]).map((e) => e.tree.title).sort(), ['A', 'C'])
+  assert.equal(trashDrop(t, []).length, 3)
+})
 test('mdLink: [Titel](Adresse), Klammern und Umbrüche maskiert, Titel leer -> Adresse', () => {
   assert.equal(mdLink('Titel', 'https://a.de/x'), '[Titel](https://a.de/x)')
   assert.equal(mdLink('A [x]\n b', 'https://a.de/p(1)'), '[A \\[x\\] b](https://a.de/p%281%29)')
