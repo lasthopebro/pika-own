@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { INFO, entries } from '../lib/perms-info.js'
+import { INFO, entries, hasSiteAccess } from '../lib/perms-info.js'
 import { docPerms } from '../tools/check-permissions.mjs'
 
 const manifest = JSON.parse(fs.readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'))
@@ -16,6 +16,14 @@ test('Berechtigungsseite: jede Zeile aus docs/BERECHTIGUNGEN.md hat einen Klarte
   const doc = [...docPerms(md).keys()]
   assert.deepEqual(doc.filter((n) => !INFO[n]), [])
   assert.deepEqual(Object.keys(INFO).filter((n) => !names.includes(n)), [], 'Klartext ohne Berechtigung im Manifest')
+})
+test('hasSiteAccess: feste Hosts des Manifests zählen nicht, einzelne erteilte Seiten schon', () => {
+  const m = { host_permissions: ['https://openrouter.ai/*'] }
+  assert.equal(hasSiteAccess(m, { origins: ['https://openrouter.ai/*'] }), false)
+  assert.equal(hasSiteAccess(m, { origins: ['https://openrouter.ai/*', 'https://example.org/*'] }), true)
+  assert.equal(hasSiteAccess(m, { origins: ['<all_urls>'] }), true)
+  assert.equal(hasSiteAccess(m, {}), false)
+  assert.equal(hasSiteAccess({}, undefined), false)
 })
 test('entries: optional und Adressmuster werden unterschieden, jede Berechtigung einmal', () => {
   const e = entries({ permissions: ['a'], optional_permissions: ['b'], host_permissions: ['https://x/*'], optional_host_permissions: ['<all_urls>'] })

@@ -31,6 +31,14 @@ test('restore: ungültige Sicherung ändert nichts', async () => {
   assert.deepEqual((await load()).tags, { a: '#fff' })
 })
 
+test('restore: tourDone bleibt, auch wenn die Sicherung es nicht kennt', async () => {
+  await update((S) => { S.settings.tourDone = true })
+  await restore({ v: 1, state: { settings: { theme: 'dark', ai: { orKey: '' } } }, folders: [] })
+  assert.equal((await load()).settings.tourDone, true)
+  await restore({ v: 1, state: { tags: {} }, folders: [] }) // ohne settings
+  assert.equal((await load()).settings.tourDone, true)
+})
+
 test('restore: vorhandener API-Schlüssel bleibt, Schlüssel aus der Sicherung gewinnt nur wenn nicht leer', async () => {
   await update((S) => { S.settings.ai.orKey = 'sk-alt' })
   const base = (key) => ({ v: 1, state: { settings: { theme: 'dark', ai: { orKey: key } } }, folders: [] })

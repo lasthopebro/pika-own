@@ -12,7 +12,8 @@ import { openTabs, saveSession, openSession } from './lib/sessions.js'
 import * as ai from './lib/ai.js'
 import * as ollama from './lib/ollama.js'
 import { resumeCards } from './lib/resume.js'
-import { trashAdd, restoreParent, findDupes, discovery, mdLink, toTree, TRASH_MAX } from './lib/board.js'
+import { trashAdd, trashDrop, stillEmpty, restoreParent, findDupes, discovery, mdLink, toTree, TRASH_MAX } from './lib/board.js'
+import { hasSiteAccess } from './lib/perms-info.js'
 import { urlsFromText, backupNagDue, NAG_MS, absorb, canon } from './lib/quick.js'
 import { WIDGETS } from './widgets/index.js'
 import { cleanPath, crumbs, children, filterChildren, up, pathTo, folderList } from './lib/gallery.js'
@@ -277,7 +278,7 @@ function colEl(f) {
   return h('section', {
     class: 'col', style: { '--c': cm.color || 'var(--bd)' }, ondragover: (e) => e.preventDefault(),
     ondrop: (e) => { e.preventDefault(); if (emp) drag = null; else dropOn(f.virtual ? barOf(T).id : f.id, undefined, e) },
-  }, h('header', { class: 'colhead' }, h('span', { class: 'colname' }, cm.name || f.title || '(ohne Namen)'), h('span', { class: 'muted' }, String(emp ? f.children.length : countUrls(f))), emp && f.children.length ? h('button', { onclick: () => cleanEmpty(f.children) }, 'Alle aufräumen') : null, h('button', { class: 'ico', title: 'Spaltenmenü', 'aria-label': 'Spaltenmenü', onclick: (e) => colMenu(e, f) }, I('more'))),
+  }, h('header', { class: 'colhead' }, h('span', { class: 'colname' }, cm.name || f.title || '(ohne Namen)'), h('span', { class: 'muted' }, String(emp ? f.children.length : countUrls(f))), emp && f.children.length && !filterTag ? h('button', { onclick: () => cleanEmpty(f.children) }, 'Alle aufräumen') : null, h('button', { class: 'ico', title: 'Spaltenmenü', 'aria-label': 'Spaltenmenü', onclick: (e) => colMenu(e, f) }, I('more'))),
   h('div', { class: 'colbody' }, (f.children || []).filter(passes).map((n) => (n.url ? itemEl(n) : folderEl(n))), emp && !f.children.length ? h('p', { class: 'muted' }, 'Keine leeren Ordner.') : null))
 }
 function renderBoard() {
@@ -447,15 +448,23 @@ async function del(nodes) {
 async function trashNodes(nodes) {
   for (const n of nodes) S.trash = trashAdd(S.trash, n, Date.now())
   await persist()
-  for (const n of nodes) { try { n.url ? await B.bookmarks.remove(n.id) : await B.bookmarks.removeTree(n.id) } catch (e) { toast(e.message) } }
+  const failed = []
+  for (const n of nodes) { try { n.url ? await B.bookmarks.remove(n.id) : await B.bookmarks.removeTree(n.id) } catch (e) { failed.push(n); toast(e.message) } }
+  if (failed.length) { S.trash = trashDrop(S.trash, failed); await persist() } // nicht löschbar (z. B. verwaltet): kein Papierkorb-Eintrag
+  return failed
 }
 // „Alle aufräumen“ der Spalte Leere Ordner: Anzahl nennen, über den Papierkorb löschen (höchstens TRASH_MAX auf einmal), Rückgängig legt sie an die alte Stelle zurück.
 async function cleanEmpty(folders) {
   const batch = folders.slice(0, TRASH_MAX), rest = folders.length - batch.length
   if (!confirm(`${batch.length} leere Ordner in den Papierkorb verschieben?${rest ? ` (${rest} weitere beim nächsten Mal)` : ''}${S.trash.length + batch.length > TRASH_MAX ? `\nDer Papierkorb fasst ${TRASH_MAX} Einträge: ältere fallen heraus.` : ''}`)) return
-  const snap = batch.map((n) => ({ parentId: n.parentId, index: n.index, tree: toTree(n) }))
-  await trashNodes(batch)
-  toast(`${batch.length} leere Ordner im Papierkorb`, { label: 'Rückgängig', fn: async () => {
+  // Die Liste ist ein Schnappschuss: inzwischen gefüllte Ordner (anderer Tab) bleiben unberührt.
+  const { empty, skipped } = await stillEmpty(B.bookmarks, batch)
+  const snap = empty.map((n) => ({ parentId: n.parentId, index: n.index, tree: toTree(n) }))
+  const failed = await trashNodes(empty)
+  snap.splice(0, snap.length, ...snap.filter((x) => !failed.some((n) => n.parentId === x.parentId && n.index === x.index && n.title === x.tree.title)))
+  const note = (skipped ? `, ${skipped} nicht mehr leer ausgelassen` : '') + (failed.length ? `, ${failed.length} nicht löschbar` : '')
+  if (!snap.length) return toast(`Nichts verschoben${note}`)
+  toast(`${snap.length} leere Ordner im Papierkorb${note}`, { label: 'Rückgängig', fn: async () => {
     for (const x of snap.sort((p, q) => p.index - q.index)) {
       const p = byId.has(x.parentId) ? x.parentId : barOf(T).id
       await restoreTree(x.tree, p, p === x.parentId ? x.index : undefined).catch(() => restoreTree(x.tree, p)).catch((e) => toast(e.message))
@@ -852,7 +861,7 @@ function settingsDlg() {
   const pbRow = act('Leiste auf Webseiten', pb.on ? 'Leiste auf Webseiten ausschalten' : 'Leiste auf Webseiten einschalten …', pbToggle)
   // Webseiten-Berechtigung widerrufen: Leiste aus (Skript wird in der Zentrale abgemeldet), der Knopf oben bietet das Einschalten wieder an.
   const permsRow = { label: 'Berechtigungen Zugriff Widerruf erteilt Datenschutz', node: permsNode({ manifest: B.runtime.getManifest(), perms: B.permissions, onRevoke: async (e) => {
-    if (e.name !== '<all_urls>') return
+    if (e.name !== '<all_urls>' || hasSiteAccess(B.runtime.getManifest(), await B.permissions.getAll())) return // einzelne Seiten noch erteilt: Leiste bleibt
     pb.on = false; await persist(); await B.runtime.sendMessage({ type: 'pagebar' })
     pbRow.node.querySelector('button').textContent = 'Leiste auf Webseiten einschalten …'
     toast('Leiste auf Webseiten aus (geöffnete Seiten neu laden)')

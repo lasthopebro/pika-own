@@ -67,4 +67,19 @@ flow('perms', async ({ id, ok, newtab, until, poll }) => {
   ok(await poll(async () => (await s2.locator('button', { hasText: 'Leiste auf Webseiten einschalten' }).count()) === 1), 'Der Knopf bietet jetzt „einschalten“ an')
   ok(await poll(async () => (await s2.locator('[data-perm="<all_urls>"] button').count()) === 0), 'Die Zeile zeigt nicht erteilt, ohne Knopf')
   await s2.locator('button', { hasText: 'Abbrechen' }).click()
+
+  // Einzelne Seite noch erteilt: der Widerruf von <all_urls> lässt die Leiste an
+  await page.evaluate(async () => { const { update } = await import('./lib/store.js'); await update((S) => { S.settings.pagebar.on = true }) })
+  await page.reload(); await page.waitForSelector('#top button')
+  await page.evaluate(() => {
+    let on = true; const getAll = chrome.permissions.getAll.bind(chrome.permissions)
+    chrome.permissions.contains = async (q) => (q.origins?.[0] === '<all_urls>' ? on : true)
+    chrome.permissions.remove = async () => { on = false; return true }
+    chrome.permissions.getAll = async () => { const g = await getAll(); return { ...g, origins: [...g.origins, 'https://example.org/*'] } }
+  })
+  const s3 = await open()
+  await s3.locator('button[aria-label="Berechtigung <all_urls> widerrufen"]').click()
+  ok(await poll(async () => (await s3.locator('[data-perm="<all_urls>"] button').count()) === 0 && (await s3.locator('[data-perm="<all_urls>"]').getAttribute('data-granted')) === 'false'), 'Widerruf durchgeführt (Zeile „nicht erteilt“)')
+  ok(await page.evaluate(() => chrome.storage.local.get('pika').then((r) => r.pika.settings.pagebar.on)) === true && await s3.locator('button', { hasText: 'Leiste auf Webseiten ausschalten' }).count() === 1, 'Einzelne Seite noch erteilt: Leiste bleibt an, Knopf bietet weiter „ausschalten“')
+  await s3.locator('button', { hasText: 'Abbrechen' }).click()
 })

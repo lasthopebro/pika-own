@@ -8,7 +8,7 @@ const BACKUP = { v: 1, ts: 1, state: { tags: { urlaub: '#ef4444' }, settings: { 
 const day = () => { const d = new Date(); return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}` }
 
 flow('backup', async ({ ok, ctx, newtab, until, poll }) => {
-  // Nach dem Leeren des Speichers gilt das Profil als neu: die Tour erscheint und wird mit Esc beendet.
+  // Nach dem Leeren des Speichers gilt das Profil als neu: die Tour erscheint und wird mit Esc beendet (nur dort; nach dem Wiederherstellen darf sie nicht kommen).
   const noTour = async () => { if (await page.locator('dialog.tour').count()) { await page.keyboard.press('Escape'); await poll(async () => (await page.locator('dialog.tour').count()) === 0) } }
   await ctx.addInitScript(() => { window.showDirectoryPicker = () => navigator.storage.getDirectory()
     // Zugriff „abgelaufen“ nachstellen: sessionStorage.perm = 'prompt'; requestPermission (Klick) erteilt ihn wieder
@@ -51,7 +51,7 @@ flow('backup', async ({ ok, ctx, newtab, until, poll }) => {
   await page.locator(`${nag} input[type=file]`).setInputFiles({ name: 'b.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(BACKUP)) })
   ok(await until(page, async () => (await chrome.bookmarks.search({ url: 'https://example.org/zurueck-a' })).length === 1 && (await chrome.storage.local.get('pika')).pika.settings.theme === 'dark'), 'Datei wählen: Zustand und Lesezeichen wiederhergestellt')
   await page.waitForLoadState('load'); await page.waitForSelector('#top button')
-  await noTour() // die Sicherung im Test kennt tourDone nicht
+  ok(await poll(async () => (await page.evaluate(() => chrome.storage.local.get('pika').then((r) => r.pika.settings.tourDone))) === true) && (await page.locator('dialog.tour').count()) === 0, 'Nach dem Wiederherstellen (Sicherung ohne tourDone) bleibt die Tour erledigt, kein Tour-Dialog')
   ok(await poll(async () => (await page.locator(nag).count()) === 0), 'Datei wählen: Karte verschwindet')
 
   // --- Sicherungsordner einrichten
@@ -60,7 +60,7 @@ flow('backup', async ({ ok, ctx, newtab, until, poll }) => {
   await put('urlaub.jpg', 'x'); await put('pika-anderes-20250101.json', '{}')
   await page.evaluate(async () => { const { update } = await import('./lib/store.js'); await update((S) => { S.settings.ai.orKey = 'sk-or-GEHEIM' }) })
   await page.reload(); await page.waitForSelector('#top button')
-  await noTour() // der zurückgespielte Stand kennt tourDone nicht
+  ok((await page.locator('dialog.tour').count()) === 0, 'Nach Neuladen des wiederhergestellten Stands erscheint die Tour nicht wieder')
   await page.locator('#top button[aria-label="Einstellungen"]').click()
   const set = page.locator('dialog', { has: page.locator('h3', { hasText: 'Einstellungen' }) })
   await set.locator('button', { hasText: 'Ordner wählen' }).click()
